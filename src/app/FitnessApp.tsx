@@ -4,25 +4,30 @@ import {
   ChevronRight,
   Dumbbell,
   Flame,
+  Plus,
   Scale,
   Settings2,
   Sparkles,
   UtensilsCrossed,
+  X,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { QuickEntrySheet, type QuickEntryMode, type QuickEntryRequest } from './QuickEntrySheet'
+import { OnboardingScreen } from './OnboardingScreen'
 import { SettingsSheet } from './SettingsSheet'
 import { BodyView } from './routes/BodyView'
 import { InsightsView } from './routes/InsightsView'
 import { MealsView } from './routes/MealsView'
 import { TodayView } from './routes/TodayView'
 import { WorkoutsView } from './routes/WorkoutsView'
-import { formatLocalDateKey, formatShortDateKey, isTodayDateKey, shiftDateKey } from '../store/date'
+import { formatDateKeyLabel, formatLocalDateKey, formatShortDateKey, isTodayDateKey, shiftDateKey } from '../store/date'
 import { buildDailySummary } from '../store/selectors'
 import { useFitnessStore } from '../store/useFitnessStore'
 
 type TabId = 'today' | 'meals' | 'workouts' | 'body' | 'insights'
+const ONBOARDING_STORAGE_KEY = 'peakfuel:onboardingSeen'
+const STORE_STORAGE_KEY = 'peakfuel-store'
 
 const quickEntryActions: Array<{
   mode: QuickEntryMode
@@ -118,11 +123,30 @@ function getDateOptions(targetDate: string) {
   return [targetDate]
 }
 
+function hasCompletedOnboarding() {
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  return (
+    window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true' ||
+    window.localStorage.getItem(STORE_STORAGE_KEY) != null
+  )
+}
+
+function markOnboardingComplete() {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true')
+  }
+}
+
 export function FitnessApp() {
   const [activeTab, setActiveTab] = useState<TabId>('today')
   const [targetDate, setTargetDate] = useState(() => formatLocalDateKey(new Date()))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quickEntryRequest, setQuickEntryRequest] = useState<QuickEntryRequest | null>(null)
+  const [recordMenuOpen, setRecordMenuOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding())
   const [isDesktopLayout, setIsDesktopLayout] = useState(getIsDesktopLayout)
   const [mobileViewportTick, setMobileViewportTick] = useState(0)
   const activeDateChipRef = useRef<HTMLButtonElement | null>(null)
@@ -220,7 +244,13 @@ export function FitnessApp() {
   }
 
   function handleQuickAction(request: QuickEntryRequest) {
+    setRecordMenuOpen(false)
     setQuickEntryRequest(request)
+  }
+
+  function completeOnboarding() {
+    markOnboardingComplete()
+    setOnboardingOpen(false)
   }
 
   function handleApplyMealTemplate(templateId: string, targetDateKey?: string) {
@@ -243,6 +273,10 @@ export function FitnessApp() {
     }
 
     jumpToTab('body')
+  }
+
+  function openAdvancedWorkspace(tabId: 'meals' | 'workouts' | 'body' | 'insights') {
+    jumpToTab(tabId)
   }
 
   let screen = <InsightsView targetDate={targetDate} />
@@ -328,6 +362,64 @@ export function FitnessApp() {
     </section>
   )
 
+  const mobileRecordMenu = !isDesktopLayout ? (
+    <>
+      <button
+        aria-label="打开记录菜单"
+        className="global-record-fab"
+        onClick={() => setRecordMenuOpen(true)}
+        type="button"
+      >
+        <Plus size={22} />
+        <span>记录</span>
+      </button>
+      {recordMenuOpen ? (
+        <div className="record-action-sheet-backdrop" onClick={() => setRecordMenuOpen(false)} role="presentation">
+          <section
+            aria-label="选择记录类型"
+            aria-modal="true"
+            className="record-action-sheet"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="record-action-sheet-head">
+              <div>
+                <p className="section-kicker">快速记录</p>
+                <h2>现在要记什么？</h2>
+              </div>
+              <button
+                aria-label="关闭记录菜单"
+                className="icon-circle-button"
+                onClick={() => setRecordMenuOpen(false)}
+                type="button"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="record-action-grid">
+              {quickEntryActions.map((action) => {
+                const Icon = action.icon
+
+                return (
+                  <button
+                    aria-label={`记录${action.label.replace('记', '')}`}
+                    className="record-action-button"
+                    key={action.mode}
+                    onClick={() => handleQuickAction({ mode: action.mode })}
+                    type="button"
+                  >
+                    <Icon size={20} />
+                    <span>{action.label.replace('记', '')}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </>
+  ) : null
+
   return (
     <main className="app-shell">
       <div className={`app-frame${isDesktopLayout ? ' is-desktop' : ''}`}>
@@ -396,21 +488,76 @@ export function FitnessApp() {
               </div>
             ) : null}
 
-          <div className={`status-pill-row${isDesktopLayout ? '' : ' status-pill-row--mobile-compact'}`}>
-            <span className="status-pill status-pill--accent">
-              {statusDateLabel}
-            </span>
-            <span className="status-pill">{caloriesStatusLabel}</span>
-            <span className="status-pill">{proteinStatusLabel}</span>
-            {!viewingToday ? (
+          {isDesktopLayout ? (
+            <div className="status-pill-row">
+              <span className="status-pill status-pill--accent">
+                {statusDateLabel}
+              </span>
+              <span className="status-pill">{caloriesStatusLabel}</span>
+              <span className="status-pill">{proteinStatusLabel}</span>
+              {!viewingToday ? (
+                <button
+                  className="status-pill status-pill--button"
+                  onClick={() => setTargetDate(todayKey)}
+                  type="button"
+                >
+                  回今天
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className={`date-toolbar${isDesktopLayout ? '' : ' date-toolbar--mobile-minimal'}`}>
+            <button
+              aria-label="查看前一天"
+              className="date-nav-button"
+              onClick={() => setTargetDate((current) => shiftDateKey(current, -1))}
+              type="button"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            {isDesktopLayout ? (
+              <div aria-label="日期选择" className="date-strip" role="list">
+                {dateOptions.map((date) => (
+                  <button
+                    className={`date-chip${date === targetDate ? ' is-active' : ''}`}
+                    key={date}
+                    onClick={() => setTargetDate(date)}
+                    ref={date === targetDate ? activeDateChipRef : null}
+                    role="listitem"
+                    type="button"
+                  >
+                    <span>{isTodayDateKey(date) ? '今天' : formatShortDateKey(date)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
               <button
-                className="status-pill status-pill--button"
-                onClick={() => setTargetDate(todayKey)}
+                aria-label={viewingToday ? `当前日期 ${formatDateKeyLabel(targetDate)}` : `回到今天，当前 ${formatDateKeyLabel(targetDate)}`}
+                className="date-chip mobile-date-chip is-active"
+                onClick={() => {
+                  if (!viewingToday) {
+                    setTargetDate(todayKey)
+                  }
+                }}
+                ref={activeDateChipRef}
                 type="button"
               >
-                回今天
+                <strong>{statusDateLabel}</strong>
+                <span>{formatDateKeyLabel(targetDate)}</span>
               </button>
-            ) : null}
+            )}
+
+            <button
+              aria-label="查看后一天"
+              className="date-nav-button"
+              disabled={viewingToday}
+              onClick={() => setTargetDate((current) => shiftDateKey(current, 1))}
+              type="button"
+            >
+              <ChevronRight size={18} />
+            </button>
             {!isDesktopLayout ? (
               <button
                 aria-label="打开设置"
@@ -423,53 +570,21 @@ export function FitnessApp() {
             ) : null}
           </div>
 
-          <div className="date-toolbar">
-            <button
-              aria-label="查看前一天"
-              className="date-nav-button"
-              onClick={() => setTargetDate((current) => shiftDateKey(current, -1))}
-              type="button"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            <div aria-label="日期选择" className="date-strip" role="list">
-              {dateOptions.map((date) => (
-                <button
-                  className={`date-chip${date === targetDate ? ' is-active' : ''}`}
-                  key={date}
-                  onClick={() => setTargetDate(date)}
-                  ref={date === targetDate ? activeDateChipRef : null}
-                  role="listitem"
-                  type="button"
-                >
-                  <span>{isTodayDateKey(date) ? '今天' : formatShortDateKey(date)}</span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              aria-label="查看后一天"
-              className="date-nav-button"
-              disabled={viewingToday}
-              onClick={() => setTargetDate((current) => shiftDateKey(current, 1))}
-              type="button"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
           {isDesktopLayout ? globalQuickBar : null}
           </header>
 
           <section className="screen-shell">{screen}</section>
-          {isDesktopLayout ? null : globalQuickBar}
+          {isDesktopLayout ? null : mobileRecordMenu}
           {isDesktopLayout ? null : navigation}
         </div>
       </div>
 
       {settingsOpen ? (
-        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <SettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onOpenAdvancedWorkspace={openAdvancedWorkspace}
+        />
       ) : null}
       {quickEntryRequest ? (
         <QuickEntrySheet
@@ -480,6 +595,7 @@ export function FitnessApp() {
           targetDate={quickEntryRequest?.targetDateKey ?? targetDate}
         />
       ) : null}
+      {onboardingOpen ? <OnboardingScreen onComplete={completeOnboarding} /> : null}
     </main>
   )
 }

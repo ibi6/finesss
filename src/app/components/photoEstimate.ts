@@ -644,10 +644,24 @@ function dedupeByName(items: EstimatePoolItem[]) {
   })
 }
 
+function getLibraryFoodKeywords(food: Food) {
+  const haystack = normalizeText(`${food.name} ${food.servingLabel}`)
+  const keywords = new Set<string>()
+
+  Object.entries(keywordAliasMap).forEach(([canonicalKeyword, aliases]) => {
+    if (haystack.includes(normalizeText(canonicalKeyword))) {
+      keywords.add(canonicalKeyword)
+      aliases.forEach((alias) => keywords.add(alias))
+    }
+  })
+
+  return Array.from(keywords)
+}
+
 function buildEstimatePool(foods: Food[]) {
   const libraryItems: EstimatePoolItem[] = foods.map((food) => ({
     food,
-    keywords: [],
+    keywords: getLibraryFoodKeywords(food),
     scene: classifyFood(food),
     source: 'library',
   }))

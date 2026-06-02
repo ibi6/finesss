@@ -1,4 +1,4 @@
-import { Dumbbell, Scale, Sparkles, UtensilsCrossed, X } from 'lucide-react'
+import { Dumbbell, Search, Scale, Sparkles, UtensilsCrossed, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -23,6 +23,7 @@ import type {
   WorkoutTemplate,
 } from '../store/types'
 import { useFitnessStore } from '../store/useFitnessStore'
+import { searchOpenFoodFacts, type OnlineFoodResult } from './services/openFoodFacts'
 
 export type QuickEntryMode = 'meal' | 'workout' | 'body' | 'recovery'
 export interface QuickEntryRequest {
@@ -163,6 +164,7 @@ export function QuickEntrySheet({
     workoutTemplates,
     bodyEntries,
     recoveryEntries,
+    addFood,
     addMealEntry,
     addWorkoutSession,
     addBodyEntry,
@@ -176,6 +178,7 @@ export function QuickEntrySheet({
       workoutTemplates: state.workoutTemplates,
       bodyEntries: state.bodyEntries,
       recoveryEntries: state.recoveryEntries,
+      addFood: state.addFood,
       addMealEntry: state.addMealEntry,
       addWorkoutSession: state.addWorkoutSession,
       addBodyEntry: state.addBodyEntry,
@@ -216,6 +219,11 @@ export function QuickEntrySheet({
   const [mealForm, setMealForm] = useState(() =>
     createMealForm(initialSuggestedFood ?? favoriteFoods[0], request?.mealType),
   )
+  const [foodSearchQuery, setFoodSearchQuery] = useState(() => initialSuggestedFood?.name ?? favoriteFoods[0]?.name ?? '')
+  const [onlineFoods, setOnlineFoods] = useState<OnlineFoodResult[]>([])
+  const [onlineLookupStatus, setOnlineLookupStatus] = useState('')
+  const [selectedOnlineFood, setSelectedOnlineFood] = useState<OnlineFoodResult | null>(null)
+  const [saveOnlineFood, setSaveOnlineFood] = useState(false)
   const [workoutForm, setWorkoutForm] = useState(() =>
     createWorkoutForm(requestedWorkoutTemplate ?? latestWorkoutTemplate),
   )
@@ -225,6 +233,29 @@ export function QuickEntrySheet({
   const [recoveryForm, setRecoveryForm] = useState(() =>
     createRecoveryForm(relevantRecoveryEntry, requestedRecoveryPreset),
   )
+  const localFoodMatches = useMemo(() => {
+    const normalizedQuery = foodSearchQuery.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return favoriteFoods
+    }
+
+    return foods
+      .filter((food) =>
+        [food.name, food.servingLabel, `${food.calories}`, `${food.protein}`]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+      .sort((left, right) => {
+        if (left.isFavorite !== right.isFavorite) {
+          return left.isFavorite ? -1 : 1
+        }
+
+        return (right.lastUsedAt ?? '').localeCompare(left.lastUsedAt ?? '')
+      })
+      .slice(0, 5)
+  }, [favoriteFoods, foodSearchQuery, foods])
 
   if (!request) {
     return null
@@ -246,7 +277,10 @@ export function QuickEntrySheet({
     onClose()
   }
 
-  function applyFavoriteFood(food: Food) {
+  function applyFood(food: Food) {
+    setSelectedOnlineFood(null)
+    setSaveOnlineFood(false)
+    setFoodSearchQuery(food.name)
     setMealForm((current) => ({
       ...current,
       foodName: food.name,
@@ -257,6 +291,35 @@ export function QuickEntrySheet({
       fat: String(food.fat),
       sourceFoodId: food.id,
     }))
+  }
+
+  function applyOnlineFood(food: OnlineFoodResult) {
+    setSelectedOnlineFood(food)
+    setSaveOnlineFood(false)
+    setFoodSearchQuery(food.name)
+    setMealForm((current) => ({
+      ...current,
+      foodName: food.name,
+      servingLabel: food.servingLabel,
+      calories: String(food.calories),
+      protein: String(food.protein),
+      carbs: String(food.carbs),
+      fat: String(food.fat),
+      sourceFoodId: null,
+    }))
+  }
+
+  async function lookupFoodOnline() {
+    setOnlineLookupStatus('查询中...')
+    setOnlineFoods([])
+
+    try {
+      const results = await searchOpenFoodFacts(foodSearchQuery || mealForm.foodName)
+      setOnlineFoods(results)
+      setOnlineLookupStatus(results.length > 0 ? `找到 ${results.length} 个在线结果` : '在线也没找到合适结果')
+    } catch {
+      setOnlineLookupStatus('联网查询失败，仍可手动保存。')
+    }
   }
 
   function applyWorkoutTemplate(template: WorkoutTemplate) {
@@ -282,6 +345,20 @@ export function QuickEntrySheet({
   function submitMeal(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const stamp = createDateStampForDateKey(targetDate)
+    let sourceFoodId = mealForm.sourceFoodId
+
+    if (selectedOnlineFood && saveOnlineFood) {
+      const createdFood = addFood({
+        name: mealForm.foodName.trim(),
+        servingLabel: mealForm.servingLabel.trim(),
+        calories: Number(mealForm.calories),
+        protein: Number(mealForm.protein),
+        carbs: Number(mealForm.carbs),
+        fat: Number(mealForm.fat),
+        isFavorite: true,
+      })
+      sourceFoodId = createdFood.id
+    }
 
     addMealEntry({
       mealType: mealForm.mealType,
@@ -293,7 +370,7 @@ export function QuickEntrySheet({
       fat: Number(mealForm.fat),
       loggedAt: stamp.iso,
       dateKey: stamp.dateKey,
-      sourceFoodId: mealForm.sourceFoodId,
+      sourceFoodId,
     })
 
     closeSheet()
@@ -423,6 +500,73 @@ export function QuickEntrySheet({
 
         {activeMode === 'meal' ? (
           <form className="feature-form quick-entry-form" onSubmit={submitMeal}>
+            <div className="panel-subsection quick-entry-section quick-food-search-section">
+              <label className="search-field quick-food-search-field">
+                <Search size={16} />
+                <input
+                  aria-label="搜索食物或商品"
+                  onChange={(event) => setFoodSearchQuery(event.target.value)}
+                  placeholder="先搜本地食物，找不到再联网"
+                  type="search"
+                  value={foodSearchQuery}
+                />
+              </label>
+
+              {localFoodMatches.length > 0 ? (
+                <div className="favorite-chip-row quick-food-result-row">
+                  {localFoodMatches.map((food) => (
+                    <button
+                      aria-label={`带入 ${food.name}`}
+                      className="favorite-food-pill"
+                      key={food.id}
+                      onClick={() => applyFood(food)}
+                      type="button"
+                    >
+                      <strong>{food.name}</strong>
+                      <span>{food.calories} kcal · {food.servingLabel}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="inline-note">本地没搜到，可以手动填，也可以联网查一下。</p>
+              )}
+
+              <div className="quick-food-online-row">
+                <button
+                  className="ghost-button inline-action-button"
+                  disabled={!foodSearchQuery.trim()}
+                  onClick={lookupFoodOnline}
+                  type="button"
+                >
+                  联网查一下
+                </button>
+                {onlineLookupStatus ? <span className="inline-note">{onlineLookupStatus}</span> : null}
+              </div>
+
+              {onlineFoods.length > 0 ? (
+                <div className="stack-list quick-food-online-list">
+                  {onlineFoods.map((food) => (
+                    <button
+                      aria-label={`带入 ${food.name}`}
+                      className="list-item list-item--dense quick-food-online-card"
+                      key={food.id}
+                      onClick={() => applyOnlineFood(food)}
+                      type="button"
+                    >
+                      <div>
+                        <strong>{food.name}</strong>
+                        <p>{food.servingLabel}</p>
+                      </div>
+                      <div className="numeric-meta">
+                        <strong>{food.calories} kcal</strong>
+                        <span>{food.protein} g 蛋白</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
             {favoriteFoods.length > 0 ? (
               <div className="panel-subsection quick-entry-section">
                 <div className="meal-inline-head">
@@ -436,7 +580,7 @@ export function QuickEntrySheet({
                     <button
                       className="favorite-food-pill"
                       key={food.id}
-                      onClick={() => applyFavoriteFood(food)}
+                      onClick={() => applyFood(food)}
                       type="button"
                     >
                       <strong>{food.name}</strong>
@@ -453,13 +597,15 @@ export function QuickEntrySheet({
                 <label className="field field--span-2">
                   <span>食物名称</span>
                   <input
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setMealForm((current) => ({
                         ...current,
                         foodName: event.target.value,
                         sourceFoodId: null,
                       }))
-                    }
+                      setSelectedOnlineFood(null)
+                      setSaveOnlineFood(false)
+                    }}
                     required
                     type="text"
                     value={mealForm.foodName}
@@ -562,6 +708,17 @@ export function QuickEntrySheet({
                   />
                 </label>
               </div>
+
+              {selectedOnlineFood ? (
+                <label className="checkbox-row quick-online-save-row">
+                  <input
+                    checked={saveOnlineFood}
+                    onChange={(event) => setSaveOnlineFood(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>保存为常用</span>
+                </label>
+              ) : null}
             </div>
 
             <div className="form-actions form-actions--split">

@@ -91,8 +91,10 @@ describe('FitnessApp', () => {
     expect(topbar).toHaveClass('app-topbar--mobile-sticky')
     expect(within(topbar as HTMLElement).queryByText('燃刻')).not.toBeInTheDocument()
     expect(within(topbar as HTMLElement).getByRole('button', { name: '打开设置' })).toBeInTheDocument()
-    expect(within(topbar as HTMLElement).getByText(/剩 \d+ kcal/)).toBeInTheDocument()
-    expect(within(topbar as HTMLElement).getByText(/蛋白 \d+g/)).toBeInTheDocument()
+    expect(within(topbar as HTMLElement).queryByText(/剩 \d+ kcal/)).not.toBeInTheDocument()
+    expect(within(topbar as HTMLElement).queryByText(/蛋白 \d+g/)).not.toBeInTheDocument()
+    expect(within(topbar as HTMLElement).getByRole('button', { name: '查看前一天' })).toBeInTheDocument()
+    expect(within(topbar as HTMLElement).getByRole('button', { name: '查看后一天' })).toBeInTheDocument()
   })
 
   it('uses a compact mobile rail for today quick actions', async () => {
@@ -255,7 +257,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '今日' }))
 
-    const focusPanel = screen.getByRole('heading', { level: 2, name: '先把今天记明白' }).closest('article')
+    const focusPanel = screen.getByRole('heading', { level: 2, name: /今天还差 \d+ 件事/ }).closest('article')
 
     expect(focusPanel).not.toBeNull()
     expect(focusPanel).toHaveClass('focus-panel', 'focus-panel--compact')
@@ -283,7 +285,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '今日' }))
 
-    const focusPanel = screen.getByRole('heading', { level: 2, name: '先把今天记明白' }).closest('article')
+    const focusPanel = screen.getByRole('heading', { level: 2, name: /今天还差 \d+ 件事/ }).closest('article')
 
     expect(focusPanel).not.toBeNull()
     expect((focusPanel as HTMLElement).querySelector('.focus-meta-row')).toHaveClass(
@@ -710,12 +712,17 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
 
-    const quickBar = screen.getByRole('region', { name: "全局快速记录" })
-    expect(quickBar).toHaveClass('global-quickbar', 'global-quickbar--mobile-floating')
-    expect(within(quickBar).getByRole('button', { name: "全局记饮食" })).toBeInTheDocument()
-    expect(within(quickBar).getByRole('button', { name: "全局记训练" })).toBeInTheDocument()
-    expect(within(quickBar).getByRole('button', { name: "全局记体重" })).toBeInTheDocument()
-    expect(within(quickBar).getByRole('button', { name: "全局记恢复" })).toBeInTheDocument()
+    const recordFab = screen.getByRole('button', { name: "打开记录菜单" })
+    expect(recordFab).toHaveClass('global-record-fab')
+
+    await user.click(recordFab)
+
+    const actionSheet = screen.getByRole('dialog', { name: "选择记录类型" })
+    expect(actionSheet).toHaveClass('record-action-sheet')
+    expect(within(actionSheet).getByRole('button', { name: "记录饮食" })).toBeInTheDocument()
+    expect(within(actionSheet).getByRole('button', { name: "记录训练" })).toBeInTheDocument()
+    expect(within(actionSheet).getByRole('button', { name: "记录体重" })).toBeInTheDocument()
+    expect(within(actionSheet).getByRole('button', { name: "记录恢复" })).toBeInTheDocument()
   })
 
   it('opens all quick entry modes from the desktop global quick bar outside today', async () => {

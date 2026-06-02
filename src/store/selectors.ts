@@ -914,7 +914,7 @@ function scoreProteinFood(
     proteinDensity * 180 +
     proteinCoverage * 50 +
     calorieFit * 32 +
-    (food.isFavorite ? 12 : 0) +
+    (food.isFavorite ? 36 : 0) +
     (food.lastUsedAt ? 8 : 0)
   )
 }

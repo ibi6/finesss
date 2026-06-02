@@ -24,6 +24,7 @@ import { useFitnessStore } from '../store/useFitnessStore'
 interface SettingsSheetProps {
   open: boolean
   onClose: () => void
+  onOpenAdvancedWorkspace?: (workspace: 'meals' | 'workouts' | 'body' | 'insights') => void
 }
 
 interface PendingImportState {
@@ -82,7 +83,7 @@ const weeklyRatePresets = [
   { label: '冲一段', value: 0.75, note: '阶段性提速' },
 ] as const
 
-export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
+export function SettingsSheet({ open, onClose, onOpenAdvancedWorkspace }: SettingsSheetProps) {
   const {
     profile,
     foods,
@@ -303,6 +304,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setForm(createProfileForm(useFitnessStore.getState().profile))
     setStatus('已恢复示例数据。')
     setConfirmResetOpen(false)
+  }
+
+  function openAdvancedWorkspace(workspace: 'meals' | 'workouts' | 'body' | 'insights') {
+    onOpenAdvancedWorkspace?.(workspace)
+    onClose()
   }
 
   const pendingImportRecordSummary = pendingImport
@@ -563,6 +569,33 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         </form>
 
         <div className="settings-actions">
+          <section className="settings-advanced-panel" aria-label="高级功能与数据">
+            <div className="panel-head">
+              <div>
+                <p className="section-kicker">高级功能</p>
+                <h3>食物、计划和完整历史放这里</h3>
+              </div>
+            </div>
+            <div className="settings-advanced-grid">
+              <button className="secondary-button" onClick={() => openAdvancedWorkspace('meals')} type="button">
+                <Database size={16} />
+                <span>食物与排餐</span>
+              </button>
+              <button className="secondary-button" onClick={() => openAdvancedWorkspace('workouts')} type="button">
+                <CalendarClock size={16} />
+                <span>训练计划</span>
+              </button>
+              <button className="secondary-button" onClick={() => openAdvancedWorkspace('body')} type="button">
+                <Gauge size={16} />
+                <span>完整历史</span>
+              </button>
+              <button className="secondary-button" onClick={() => openAdvancedWorkspace('insights')} type="button">
+                <Target size={16} />
+                <span>周报总结</span>
+              </button>
+            </div>
+          </section>
+
           <button className="secondary-button" onClick={exportBackup} type="button">
             <Download size={16} />
             <span>导出备份</span>

@@ -159,6 +159,34 @@ export function TodayView({
   const recoveryScoreCopy = daily.recoveryScore != null ? `${daily.recoveryScore} 分` : '--'
   const weeklyRecoveryScoreCopy =
     weekly.recoveryDays > 0 ? `${weekly.averageRecoveryScore} 分` : '--'
+  const executionItems = [
+    {
+      id: 'meal',
+      label: '三餐记录',
+      done: daily.mealsLogged >= 3,
+      detail: `${Math.min(daily.mealsLogged, 3)} / 3 餐`,
+    },
+    {
+      id: 'workout',
+      label: '训练记录',
+      done: daily.trainingMinutes > 0,
+      detail: daily.trainingMinutes > 0 ? `${daily.trainingMinutes} 分钟` : '未记录',
+    },
+    {
+      id: 'body',
+      label: '体重记录',
+      done: daily.hasBodyEntry,
+      detail: daily.hasBodyEntry ? '已记录' : '未记录',
+    },
+    {
+      id: 'recovery',
+      label: '恢复记录',
+      done: daily.recoveryLogged,
+      detail: daily.recoveryLogged ? recoveryScoreCopy : '未记录',
+    },
+  ]
+  const remainingExecutionCount = executionItems.filter((item) => !item.done).length
+  const nextExecutionItem = executionItems.find((item) => !item.done)
 
   function handleTomorrowPlanAction(action: TomorrowPlanAction) {
     if (action.kind === 'meal' && action.templateId) {
@@ -209,10 +237,20 @@ export function TodayView({
         <div className="focus-head">
           <div>
             <p className="section-kicker">{isTodayView ? '今日' : '回看'}</p>
-            <h2>{isTodayView ? '先把今天记明白' : '回看这一天的执行'}</h2>
+            <h2>
+              {isTodayView
+                ? remainingExecutionCount > 0
+                  ? `今天还差 ${remainingExecutionCount} 件事`
+                  : '今天排好的都已经落下来了'
+                : '回看这一天的执行'}
+            </h2>
             {showFocusDetail ? (
               <p className="muted-copy muted-copy--compact">
-                {isTodayView ? '饮食、训练、恢复和体重都在这里汇总。' : '这一天的饮食、训练和恢复会一起回到这里。'}
+                {isTodayView
+                  ? nextExecutionItem
+                    ? `下一步先补：${nextExecutionItem.label}。`
+                    : '饮食、训练、恢复和体重都已经有记录。'
+                  : '这一天的饮食、训练和恢复会一起回到这里。'}
               </p>
             ) : null}
           </div>
@@ -228,6 +266,16 @@ export function TodayView({
           <span className="meta-chip meta-chip--muted">
             {daily.hasBodyEntry ? '已记体重' : '未记体重'}
           </span>
+        </div>
+
+        <div aria-label="今日执行清单" className="execution-checklist" role="list">
+          {executionItems.map((item) => (
+            <div className={`execution-check-item${item.done ? ' is-done' : ''}`} key={item.id} role="listitem">
+              <span aria-hidden="true" className="execution-check-dot" />
+              <strong>{item.label}</strong>
+              <small>{item.detail}</small>
+            </div>
+          ))}
         </div>
 
         <div className="stat-row stat-row--metrics stat-row--metrics-rail">

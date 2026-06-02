@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PeakFuel</string>
-    <string name="title_activity_main">PeakFuel</string>
+    <string name="app_name">燃刻</string>
+    <string name="title_activity_main">燃刻</string>
     <string name="package_name">com.peakfuel.app</string>
     <string name="custom_url_scheme">com.peakfuel.app</string>
 </resources>
