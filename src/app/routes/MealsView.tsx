@@ -53,6 +53,8 @@ interface MealsViewProps {
   targetDate: string
 }
 
+const primaryMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner']
+
 export function MealsView({ targetDate }: MealsViewProps) {
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
   const {
@@ -114,7 +116,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
   )
   const [form, setForm] = useState(defaultMealForm)
   const [editingMealId, setEditingMealId] = useState<string | null>(null)
-  const [libraryQuery] = useState('')
+  const [libraryQuery, setLibraryQuery] = useState('')
   const [reuseQuery, setReuseQuery] = useState('')
   const [reuseSourceFilter, setReuseSourceFilter] = useState<'all' | 'favorite' | 'recent'>('all')
   const [reuseRangeDays, setReuseRangeDays] = useState<MealReuseRangeDays>(7)
@@ -405,7 +407,11 @@ export function MealsView({ targetDate }: MealsViewProps) {
       : '还没有排餐，先从下面挑一套模板。'
   const isLogWorkspace = mealWorkspace === 'log'
   const isPlanWorkspace = mealWorkspace === 'plan'
-  const isLibraryWorkspace = mealWorkspace === 'library'
+  const selectedDayMealBucketsByType = useMemo(
+    () => new Map(selectedDayMealBuckets.map((bucket) => [bucket.mealType, bucket])),
+    [selectedDayMealBuckets],
+  )
+  const snackMealBucket = selectedDayMealBucketsByType.get('snack') ?? null
 
   function updateField<Key extends keyof typeof defaultMealForm>(key: Key, value: string) {
     setForm((current) => ({
@@ -611,6 +617,14 @@ export function MealsView({ targetDate }: MealsViewProps) {
 
     pendingLogFocusTargetRef.current = target
     setMealWorkspace('log')
+  }
+
+  function startMealEntryFor(mealType: MealType) {
+    setForm((current) => ({
+      ...current,
+      mealType,
+    }))
+    jumpToLogWorkspace('manual')
   }
 
   useEffect(() => {
@@ -954,7 +968,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
         <div className="panel-head">
           <div>
             <p className="section-kicker">饮食</p>
-            <h2>把今天吃进去的东西迅速记清楚</h2>
+            <h2>今天吃了什么，一眼看清</h2>
           </div>
           <div className="pill-row">
             <span className="pill pill--muted">{formatDateKeyLabel(targetDate)}</span>
@@ -979,6 +993,81 @@ export function MealsView({ targetDate }: MealsViewProps) {
             <small>{isTodayView ? '今天还能继续安排' : '对照当天目标'}</small>
           </article>
         </div>
+
+        <div aria-label="今日三餐概览" className="meal-day-overview-grid" role="list">
+          {primaryMealTypes.map((mealType) => {
+            const bucket = selectedDayMealBucketsByType.get(mealType)
+            const entries = bucket?.entries ?? []
+
+            return (
+              <article
+                aria-label={`${mealTypeLabels[mealType]}吃了什么`}
+                className={`meal-day-overview-card${entries.length > 0 ? ' has-entries' : ''}`}
+                key={mealType}
+                role="listitem"
+              >
+                <div className="meal-day-overview-head">
+                  <div>
+                    <p className="section-kicker">今天</p>
+                    <h3>{mealTypeLabels[mealType]}</h3>
+                  </div>
+                  <span className="pill pill--muted">
+                    {entries.length > 0 ? `${bucket?.calories ?? 0} kcal` : '未记录'}
+                  </span>
+                </div>
+
+                {entries.length > 0 ? (
+                  <>
+                    <p className="meal-day-overview-foods">
+                      {entries.map((entry) => entry.foodName).join(' · ')}
+                    </p>
+                    <div className="pill-row meal-day-overview-macros">
+                      <span className="pill pill--muted">{bucket?.protein ?? 0} g 蛋白质</span>
+                      <span className="pill pill--muted">{entries.length} 项</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="meal-day-overview-empty">还没记，点一下补这一餐。</p>
+                )}
+
+                <button
+                  aria-label={`记录${mealTypeLabels[mealType]}`}
+                  className="secondary-button meal-day-overview-action"
+                  onClick={() => startMealEntryFor(mealType)}
+                  type="button"
+                >
+                  {entries.length > 0 ? '继续补' : `记${mealTypeLabels[mealType]}`}
+                </button>
+              </article>
+            )
+          })}
+        </div>
+
+        <details aria-label="加餐记录折叠区" className="meal-snack-details" open={snackMealBucket != null}>
+          <summary>
+            <span>加餐</span>
+            <small>
+              {snackMealBucket
+                ? `${snackMealBucket.entries.length} 项 · ${snackMealBucket.calories} kcal`
+                : '需要时再展开记录'}
+            </small>
+          </summary>
+          <div className="meal-snack-body">
+            {snackMealBucket ? (
+              <p>{snackMealBucket.entries.map((entry) => entry.foodName).join(' · ')}</p>
+            ) : (
+              <p>今天还没有加餐记录。</p>
+            )}
+            <button
+              aria-label="记录加餐"
+              className="text-action"
+              onClick={() => startMealEntryFor('snack')}
+              type="button"
+            >
+              记加餐
+            </button>
+          </div>
+        </details>
 
         <div className="meal-capture-panel">
           <div className="meal-inline-head">
@@ -1018,7 +1107,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
             >
               <Star size={18} />
               <span>常吃带入</span>
-              <small>{favoriteFoods.length > 0 ? `${favoriteFoods.length} 个常用项` : '先沉淀食物库'}</small>
+              <small>{favoriteFoods.length > 0 ? `${favoriteFoods.length} 个常用项` : '先保存几个常用'}</small>
             </button>
             <button
               aria-label="去最近识别"
@@ -1188,7 +1277,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
                   <p className="section-kicker">手动录入</p>
                   <h3>{editingMealId ? '修改这条饮食记录' : '把这一餐直接记下来'}</h3>
                 </div>
-                {form.sourceFoodId ? <span className="inline-note">已从食物库带入，可继续微调</span> : null}
+                {form.sourceFoodId ? <span className="inline-note">已从常用食物带入，可继续微调</span> : null}
               </div>
 
               <div className="form-grid">
@@ -1284,11 +1373,184 @@ export function MealsView({ targetDate }: MealsViewProps) {
             </form>
           </article>
 
+          <article className="feature-panel meal-source-panel">
+            <details className="frontstage-details">
+              <summary>
+                <span>找不到食物？新增常用</span>
+                <small>搜索、填入和自定义只在记录时使用</small>
+              </summary>
+
+              <div className="panel-subsection meal-source-body">
+                <div className="meal-inline-head">
+                  <div>
+                    <p className="section-kicker">常用食物</p>
+                    <h3>搜一下，直接把热量带进来</h3>
+                  </div>
+                  <button
+                    className="ghost-button inline-action-button"
+                    onClick={() => setShowFoodComposer((current) => !current)}
+                    type="button"
+                  >
+                    <Plus size={16} />
+                    <span>{showFoodComposer ? '收起新增' : '新增常用食物'}</span>
+                  </button>
+                </div>
+
+                {showFoodComposer ? (
+                  <form className="feature-form panel-subsection" onSubmit={handleCreateFood}>
+                    <div className="meal-inline-head">
+                      <div>
+                        <p className="section-kicker">自定义常用</p>
+                        <h3>把找不到的食物保存成下次可带入</h3>
+                      </div>
+                      <span className="inline-note">保存后会自动回填</span>
+                    </div>
+
+                    <div className="form-grid">
+                      <label className="field field--span-2">
+                        <span>食物名称</span>
+                        <input
+                          onChange={(event) => updateFoodDraft('name', event.target.value)}
+                          required
+                          type="text"
+                          value={foodDraft.name}
+                        />
+                      </label>
+
+                      <label className="field">
+                        <span>份量</span>
+                        <input
+                          onChange={(event) => updateFoodDraft('servingLabel', event.target.value)}
+                          required
+                          type="text"
+                          value={foodDraft.servingLabel}
+                        />
+                      </label>
+
+                      <label className="field favorite-toggle-field">
+                        <span>是否常吃</span>
+                        <button
+                          aria-pressed={foodDraft.isFavorite}
+                          className={`segment-button${foodDraft.isFavorite ? ' is-active' : ''}`}
+                          onClick={() => updateFoodDraft('isFavorite', !foodDraft.isFavorite)}
+                          type="button"
+                        >
+                          {foodDraft.isFavorite ? '加入常用' : '只保存一次'}
+                        </button>
+                      </label>
+                    </div>
+
+                    <div className="macro-grid">
+                      <label className="field">
+                        <span>热量</span>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateFoodDraft('calories', event.target.value)}
+                          required
+                          type="number"
+                          value={foodDraft.calories}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>蛋白质</span>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateFoodDraft('protein', event.target.value)}
+                          required
+                          type="number"
+                          value={foodDraft.protein}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>碳水</span>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateFoodDraft('carbs', event.target.value)}
+                          required
+                          type="number"
+                          value={foodDraft.carbs}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>脂肪</span>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateFoodDraft('fat', event.target.value)}
+                          required
+                          type="number"
+                          value={foodDraft.fat}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="form-actions form-actions--split">
+                      <button className="ghost-button" onClick={resetFoodDraft} type="button">
+                        取消
+                      </button>
+                      <button className="primary-button" type="submit">
+                        保存为常用
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+
+                <label className="search-field meal-source-search">
+                  <Search size={16} />
+                  <input
+                    aria-label="搜索常用食物"
+                    onChange={(event) => setLibraryQuery(event.target.value)}
+                    placeholder="按食物、份量或营养数字搜索"
+                    type="search"
+                    value={libraryQuery}
+                  />
+                </label>
+
+                <div className="stack-list">
+                  {filteredFoods.length > 0 ? (
+                    filteredFoods.map((food) => (
+                      <div className="list-item list-item--dense" key={food.id}>
+                        <div>
+                          <div className="list-meta-row">
+                            <strong>{food.name}</strong>
+                            {food.isFavorite ? <span className="pill pill--muted">常用</span> : null}
+                          </div>
+                          <p>
+                            {food.calories} kcal · {food.protein} g protein · {food.servingLabel}
+                          </p>
+                          <small className="subtle-caption">{formatLastUsed(food.lastUsedAt)}</small>
+                        </div>
+                        <div className="entry-actions">
+                          <button
+                            className="secondary-text-button"
+                            onClick={() => fillFromFood(food)}
+                            type="button"
+                          >
+                            填入
+                          </button>
+                          <button
+                            aria-label={`${food.isFavorite ? '取消常用' : '设为常用'} ${food.name}`}
+                            className="icon-button"
+                            onClick={() => toggleFavoriteFood(food.id)}
+                            type="button"
+                          >
+                            <Star fill={food.isFavorite ? 'currentColor' : 'none'} size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-note">没有匹配到食物，可以新增一个常用食物。</div>
+                  )}
+                </div>
+              </div>
+            </details>
+          </article>
+
           <article className="feature-panel" ref={recentPhotoHistoryRef} tabIndex={-1}>
             <div className="panel-head">
               <div>
                 <p className="section-kicker">最近识别</p>
-                <h3>最近识别工作台</h3>
+                <h3>拍过的食物可以再带入</h3>
               </div>
               <span className="inline-note">{photoEstimateHistorySummaryLabel}</span>
             </div>
@@ -1356,7 +1618,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
                         <strong>{record.foodName}</strong>
                         <div className="photo-estimate-record-meta">
                           <span className="pill pill--muted">{photoEstimateSceneLabels[record.scene]}</span>
-                          <span className="pill pill--muted">{record.sourceFoodId ? '食物库' : '参考估算'}</span>
+                          <span className="pill pill--muted">{record.sourceFoodId ? '常用来源' : '参考估算'}</span>
                           <span className="pill pill--muted">{record.confidence}% 置信度</span>
                         </div>
                       </div>
@@ -1429,7 +1691,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
                             <div className="list-meta-row">
                               <strong>{entry.foodName}</strong>
                               <span className="pill pill--muted">{formatLoggedTime(entry.loggedAt)}</span>
-                              {entry.sourceFoodId ? <span className="pill pill--muted">食物库</span> : null}
+                              {entry.sourceFoodId ? <span className="pill pill--muted">常用来源</span> : null}
                             </div>
                             <p>{entry.servingLabel}</p>
                             <div className="pill-row meal-day-entry-metrics">
@@ -1493,11 +1755,11 @@ export function MealsView({ targetDate }: MealsViewProps) {
           <article className="feature-panel feature-panel--wide">
             <div className="panel-head">
               <div>
-                <p className="section-kicker">模板沉淀</p>
-                <h3>把已经记过的一餐留给下一次一键复用</h3>
+                <p className="section-kicker">常用组合</p>
+                <h3>把已经记过的一餐留给下一次</h3>
               </div>
               <div className="pill-row">
-                <span className="pill">{selectedDayMealBuckets.length} 组可沉淀</span>
+                <span className="pill">{selectedDayMealBuckets.length} 组可保存</span>
               </div>
             </div>
 
@@ -1516,17 +1778,17 @@ export function MealsView({ targetDate }: MealsViewProps) {
                       </small>
                     </div>
                     <button
-                      aria-label={`从${mealTypeLabels[bucket.mealType]}沉淀模板`}
+                      aria-label={`把${mealTypeLabels[bucket.mealType]}设为常用组合`}
                       className="secondary-button"
                       onClick={() => startTemplateCapture(bucket.mealType)}
                       type="button"
                     >
-                      存为模板
+                      存为常用
                     </button>
                   </article>
                 ))
               ) : (
-                <div className="empty-note">先记下一餐，系统才能帮你把它沉淀成模板。</div>
+                <div className="empty-note">先记下一餐，系统才能帮你保存成下次可直接带入的组合。</div>
               )}
             </div>
 
@@ -1642,8 +1904,8 @@ export function MealsView({ targetDate }: MealsViewProps) {
           <article className="feature-panel feature-panel--wide">
             <div className="panel-head">
               <div>
-                <p className="section-kicker">每周排餐</p>
-                <h3>把模板固定到每周的某一餐</h3>
+                <p className="section-kicker">本周吃什么</p>
+                <h3>把常用组合排进这一周</h3>
               </div>
               <span className="inline-note">{selectedPlannerStatus}</span>
             </div>
@@ -1731,7 +1993,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
                   )
                 })
               ) : (
-                <div className="empty-note">这个餐次还没有可用模板，先沉淀一套再排进来。</div>
+                <div className="empty-note">这个餐次还没有可用组合，先保存一套再排进来。</div>
               )}
             </div>
           </article>
@@ -1740,7 +2002,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
             <div className="panel-head">
               <div>
                 <p className="section-kicker">本周备餐</p>
-                <h3>把排好的模板自动汇成采购清单</h3>
+                <h3>按本周安排生成备餐清单</h3>
               </div>
               <span className="inline-note">
                 {weeklyPrepItems.length > 0
@@ -1859,7 +2121,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
               ) : (
                 <div className="empty-note">
                   {weeklyPrepItems.length === 0
-                    ? `${prepWindowLabel} 里还没有排餐，切个范围看看，或者先把几天计划排进去。`
+                    ? `${prepWindowLabel} 里还没有安排，切个范围看看，或者先把几天计划排进去。`
                     : '这一段里已经没有待处理的备餐项了，可以切回全部看看。'}
                 </div>
               )}
@@ -1869,7 +2131,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
           <article className="feature-panel">
             <div className="panel-head">
               <div>
-                <p className="section-kicker">模板库</p>
+                <p className="section-kicker">常用组合</p>
                 <h3>整套直接记</h3>
               </div>
             </div>
@@ -1908,7 +2170,7 @@ export function MealsView({ targetDate }: MealsViewProps) {
                           onClick={() => startTemplateEdit(template)}
                           type="button"
                         >
-                          编辑模板
+                          编辑
                         </button>
                         <button
                           aria-label={`删除模板 ${template.name}`}
@@ -1921,175 +2183,13 @@ export function MealsView({ targetDate }: MealsViewProps) {
                           }
                           type="button"
                         >
-                          删除模板
+                          删除
                         </button>
                       </>
                     ) : null}
                   </div>
                 </div>
               ))}
-            </div>
-          </article>
-        </div>
-      ) : null}
-
-      {isLibraryWorkspace ? (
-        <div
-          aria-labelledby="meal-workspace-tab-library"
-          className="meal-workspace-panel"
-          id="meals-workspace-library"
-          role="tabpanel"
-        >
-          <article className="feature-panel">
-            <div className="panel-head">
-              <div>
-                <p className="section-kicker">食物库</p>
-                <h3>收藏、搜索和沉淀食物</h3>
-              </div>
-              <button
-                className="ghost-button inline-action-button"
-                onClick={() => setShowFoodComposer((current) => !current)}
-                type="button"
-              >
-                <Plus size={16} />
-                <span>{showFoodComposer ? '收起新建' : '新增食物'}</span>
-              </button>
-            </div>
-
-            {showFoodComposer ? (
-              <form className="feature-form panel-subsection" onSubmit={handleCreateFood}>
-                <div className="meal-inline-head">
-                  <div>
-                    <p className="section-kicker">新增自定义食物</p>
-                    <h3>把库里没有的常吃项补进来</h3>
-                  </div>
-                  <span className="inline-note">保存后会自动回填</span>
-                </div>
-
-                <div className="form-grid">
-                  <label className="field field--span-2">
-                    <span>食物名称</span>
-                    <input
-                      onChange={(event) => updateFoodDraft('name', event.target.value)}
-                      required
-                      type="text"
-                      value={foodDraft.name}
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>份量</span>
-                    <input
-                      onChange={(event) => updateFoodDraft('servingLabel', event.target.value)}
-                      required
-                      type="text"
-                      value={foodDraft.servingLabel}
-                    />
-                  </label>
-
-                  <label className="field favorite-toggle-field">
-                    <span>快速收藏</span>
-                    <button
-                      aria-pressed={foodDraft.isFavorite}
-                      className={`segment-button${foodDraft.isFavorite ? ' is-active' : ''}`}
-                      onClick={() => updateFoodDraft('isFavorite', !foodDraft.isFavorite)}
-                      type="button"
-                    >
-                      {foodDraft.isFavorite ? '已加入常用' : '先不收藏'}
-                    </button>
-                  </label>
-                </div>
-
-                <div className="macro-grid">
-                  <label className="field">
-                    <span>热量</span>
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => updateFoodDraft('calories', event.target.value)}
-                      required
-                      type="number"
-                      value={foodDraft.calories}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>蛋白质</span>
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => updateFoodDraft('protein', event.target.value)}
-                      required
-                      type="number"
-                      value={foodDraft.protein}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>碳水</span>
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => updateFoodDraft('carbs', event.target.value)}
-                      required
-                      type="number"
-                      value={foodDraft.carbs}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>脂肪</span>
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => updateFoodDraft('fat', event.target.value)}
-                      required
-                      type="number"
-                      value={foodDraft.fat}
-                    />
-                  </label>
-                </div>
-
-                <div className="form-actions form-actions--split">
-                  <button className="ghost-button" onClick={resetFoodDraft} type="button">
-                    取消
-                  </button>
-                  <button className="primary-button" type="submit">
-                    保存到食物库
-                  </button>
-                </div>
-              </form>
-            ) : null}
-
-            <div className="stack-list">
-              {filteredFoods.length > 0 ? (
-                filteredFoods.map((food) => (
-                  <div className="list-item list-item--dense" key={food.id}>
-                    <div>
-                      <div className="list-meta-row">
-                        <strong>{food.name}</strong>
-                        {food.isFavorite ? <span className="pill pill--muted">常用</span> : null}
-                      </div>
-                      <p>
-                        {food.calories} kcal · {food.protein} g protein · {food.servingLabel}
-                      </p>
-                      <small className="subtle-caption">{formatLastUsed(food.lastUsedAt)}</small>
-                    </div>
-                    <div className="entry-actions">
-                      <button
-                        className="secondary-text-button"
-                        onClick={() => fillFromFood(food)}
-                        type="button"
-                      >
-                        填入
-                      </button>
-                      <button
-                        aria-label={`${food.isFavorite ? '取消收藏' : '收藏'} ${food.name}`}
-                        className="icon-button"
-                        onClick={() => toggleFavoriteFood(food.id)}
-                        type="button"
-                      >
-                        <Star fill={food.isFavorite ? 'currentColor' : 'none'} size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-note">没有匹配到食物，可以直接新增一个自定义食物。</div>
-              )}
             </div>
           </article>
         </div>

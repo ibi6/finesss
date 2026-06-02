@@ -50,7 +50,7 @@ export interface WeeklyPrepItem {
 
 export type PrepWindowMode = '3days' | '7days' | 'week'
 export type PrepVisibilityMode = 'all' | 'pending'
-export type MealWorkspace = 'log' | 'plan' | 'library'
+export type MealWorkspace = 'log' | 'plan'
 export type PendingLogFocusTarget = 'photo' | 'manual' | 'favorites' | 'history'
 export type MealReuseRangeDays = 7 | 30
 export type PhotoHistoryRangeDays = 7 | 30

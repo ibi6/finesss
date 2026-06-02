@@ -11,20 +11,20 @@ describe('WorkoutsView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
-  it('renders logging, rhythm, and history sections together in the continuous layout', () => {
+  it('renders daily training, rhythm, and tucked-away history controls together', () => {
     const targetDate = formatLocalDateKey(new Date())
 
     render(<WorkoutsView targetDate={targetDate} />)
 
-    expect(screen.getByRole('heading', { level: 3, name: '训练历史工作台' })).toBeInTheDocument()
-    expect(screen.getByLabelText('搜索训练历史')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '全部' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '近 7 天' })).toBeInTheDocument()
+    const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
+    expect(historyPanel).not.toBeNull()
+    expect(within(historyPanel as HTMLElement).getByText('查看全部训练记录')).toBeInTheDocument()
+    expect(screen.queryByLabelText('搜索训练历史')).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: '把训练做成能连续复用的工作台' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: '今天练了什么，一眼看清' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '本周还差 2 次训练' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '2 天有训练，先把节奏稳住' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: '先带入常练模板，再补细节' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '常练动作，点一下带入' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '把这次训练完整记下来' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '共 74 分钟 · 约 420 千卡' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /再练一次/ })).toHaveLength(2)
@@ -102,7 +102,7 @@ describe('WorkoutsView', () => {
 
     expect(screen.getByRole('heading', { level: 3, name: '共 0 分钟 · 约 0 千卡' })).toBeInTheDocument()
     expect(screen.getByText('这一天还没有训练记录，可以先补一次训练。')).toBeInTheDocument()
-    const historyPanel = screen.getByRole('heading', { level: 3, name: '训练历史工作台' }).closest('article')
+    const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
 
     await user.click(within(historyPanel as HTMLElement).getByRole('button', { name: '再练一次 腿部日' }))
@@ -133,12 +133,13 @@ describe('WorkoutsView', () => {
 
     render(<WorkoutsView targetDate={targetDate} />)
 
-    const historyPanel = screen.getByRole('heading', { level: 3, name: '训练历史工作台' }).closest('article')
+    const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
 
     expect(within(historyPanel as HTMLElement).getByText('腿部日')).toBeInTheDocument()
     expect(within(historyPanel as HTMLElement).getByText('坡走')).toBeInTheDocument()
 
+    await user.click(within(historyPanel as HTMLElement).getByText('查看全部训练记录'))
     await user.type(within(historyPanel as HTMLElement).getByLabelText('搜索训练历史'), '罗马尼亚')
 
     expect(within(historyPanel as HTMLElement).getByText('腿部日')).toBeInTheDocument()
@@ -163,8 +164,9 @@ describe('WorkoutsView', () => {
     })
 
     render(<WorkoutsView targetDate={targetDate} />)
-    const historyPanel = screen.getByRole('heading', { level: 3, name: '训练历史工作台' }).closest('article')
+    const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
+    await user.click(within(historyPanel as HTMLElement).getByText('查看全部训练记录'))
 
     expect(within(historyPanel as HTMLElement).queryByText('训练营单车')).not.toBeInTheDocument()
 
@@ -189,8 +191,9 @@ describe('WorkoutsView', () => {
     expect(originalSession).toBeDefined()
 
     render(<WorkoutsView targetDate={targetDate} />)
-    const historyPanel = screen.getByRole('heading', { level: 3, name: '训练历史工作台' }).closest('article')
+    const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
+    await user.click(within(historyPanel as HTMLElement).getByText('查看全部训练记录'))
 
     await user.click(within(historyPanel as HTMLElement).getByRole('button', { name: '编辑 坡走' }))
 
@@ -222,8 +225,8 @@ describe('WorkoutsView', () => {
 
     render(<WorkoutsView targetDate={targetDate} />)
 
-    expect(screen.getByText('训练周计划')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: '把常练模板排进这一周' })).toBeInTheDocument()
+    expect(screen.getByText('本周安排')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '本周训练安排' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '安排 推训练' }))
 

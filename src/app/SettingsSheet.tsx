@@ -604,7 +604,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
       <ConfirmSheet
         confirmLabel="清空"
-        message="会清空本地饮食、训练、身体、恢复、照片估算和周计划记录，并回到成品初始目标；预置食物库和模板会保留。"
+        message="会清空本地饮食、训练、身体、恢复、照片估算和周计划记录，并回到成品初始目标；预置常用食物和快捷模板会保留。"
         onClose={() => setConfirmCleanOpen(false)}
         onConfirm={handleClean}
         open={confirmCleanOpen}

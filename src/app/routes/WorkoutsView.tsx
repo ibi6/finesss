@@ -88,6 +88,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyKindFilter, setHistoryKindFilter] = useState<WorkoutHistoryKindFilter>('all')
   const [historyRangeDays, setHistoryRangeDays] = useState<7 | 30>(7)
+  const [showHistoryControls, setShowHistoryControls] = useState(false)
   const selectedSessions = useMemo(
     () =>
       workoutSessions
@@ -144,7 +145,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
     ? `已排 ${selectedPlannedWorkoutTemplate.name} · ${selectedPlannedWorkoutTemplate.durationMinutes} 分钟 · ${
         selectedPlannedWorkoutTemplate.kind === 'strength' ? '力量' : '有氧'
       }`
-    : '这个训练日还没排模板，先从上面的常练模板里选一套。'
+    : '这个训练日还没安排常练动作，先从上面的快速带入里选一套。'
   const weeklyPlannedWorkoutItems = weeklyPlannerDays
     .map((day) => {
       const plan = weeklyWorkoutPlansByWeekday.get(day.value)
@@ -442,7 +443,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
         <div className="panel-head">
           <div>
             <p className="section-kicker">训练</p>
-            <h2>把训练做成能连续复用的工作台</h2>
+            <h2>今天练了什么，一眼看清</h2>
           </div>
           <div className="pill-row">
             <span className="pill">{formatDateKeyLabel(targetDate)}</span>
@@ -532,10 +533,10 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
         <div className="meal-inline-section">
           <div className="meal-inline-head">
             <div>
-              <p className="section-kicker">模板快填</p>
-              <h3>先带入常练模板，再补细节</h3>
+              <p className="section-kicker">快速带入</p>
+              <h3>常练动作，点一下带入</h3>
             </div>
-            <span className="inline-note">共 {workoutTemplates.length} 套模板</span>
+            <span className="inline-note">共 {workoutTemplates.length} 套常练</span>
           </div>
 
           <div className="template-row workout-template-grid">
@@ -554,7 +555,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
                     onClick={() => startEditWorkoutTemplate(template.id)}
                     type="button"
                   >
-                    编辑模板
+                    编辑
                   </button>
                   <button
                     aria-label={`删除模板 ${template.name}`}
@@ -567,7 +568,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
                     }
                     type="button"
                   >
-                    删除模板
+                    删除
                   </button>
                 </div>
               </article>
@@ -579,13 +580,13 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
           <form className="feature-form meal-form-shell workout-template-editor" onSubmit={handleSaveWorkoutTemplate}>
             <div className="meal-inline-head">
               <div>
-                <p className="section-kicker">模板编辑</p>
+                <p className="section-kicker">常练编辑</p>
                 <h3>{templateDraft.id ? '修改这套训练模板' : '把这次训练存成下次的快捷模板'}</h3>
               </div>
               <span className="inline-note">
                 {templateDraft.id
                   ? '只会更新模板，不会改动历史训练记录'
-                  : '保存后会出现在模板快填和周训练计划里'}
+                  : '保存后会出现在快速带入和本周安排里'}
               </span>
             </div>
 
@@ -648,7 +649,7 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
               <div className="exercise-block">
                 <div className="meal-inline-head">
                   <div>
-                    <p className="section-kicker">模板动作</p>
+                    <p className="section-kicker">常练动作</p>
                     <h3>把这套训练的动作顺手整理好</h3>
                   </div>
                   <button className="ghost-button inline-action-button" onClick={appendTemplateExercise} type="button">
@@ -723,8 +724,8 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
         <div className="meal-inline-section workout-weekly-plan-panel">
           <div className="meal-inline-head">
             <div>
-              <p className="section-kicker">训练周计划</p>
-              <h3>把常练模板排进这一周</h3>
+              <p className="section-kicker">本周安排</p>
+              <h3>本周训练安排</h3>
             </div>
             {showWeeklyPlanInlineNote ? (
               <span className="inline-note">到了那天就能直接开练</span>
@@ -1067,57 +1068,70 @@ export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
       <article className="feature-panel feature-panel--wide">
         <div className="panel-head">
           <div>
-            <p className="section-kicker">训练历史</p>
-            <h3>训练历史工作台</h3>
+            <p className="section-kicker">最近训练</p>
+            <h3>最近训练记录</h3>
           </div>
           <span className="inline-note">{historySummaryLabel}</span>
         </div>
-        <div className="workout-history-toolbar">
-          <label className="search-field">
-            <Search size={16} />
-            <input
-              aria-label="搜索训练历史"
-              onChange={(event) => setHistoryQuery(event.target.value)}
-              placeholder="按标题、备注、动作名称搜索"
-              type="search"
-              value={historyQuery}
-            />
-          </label>
+        <div className="frontstage-details history-controls-details">
+          <button
+            aria-expanded={showHistoryControls}
+            className="frontstage-summary-button"
+            onClick={() => setShowHistoryControls((current) => !current)}
+            type="button"
+          >
+            <span>查看全部训练记录</span>
+            <small>搜索、筛选和更久记录放在这里</small>
+          </button>
+          {showHistoryControls ? (
+            <div className="workout-history-toolbar">
+              <label className="search-field">
+                <Search size={16} />
+                <input
+                  aria-label="搜索训练历史"
+                  onChange={(event) => setHistoryQuery(event.target.value)}
+                  placeholder="按标题、备注、动作名称搜索"
+                  type="search"
+                  value={historyQuery}
+                />
+              </label>
 
-          <div className="workout-history-filter-grid">
-            <div className="segmented-control segmented-control--3">
-              {([
-                ['all', '全部'],
-                ['strength', '力量'],
-                ['cardio', '有氧'],
-              ] as const).map(([value, label]) => (
-                <button
-                  className={`segment-button${historyKindFilter === value ? ' is-active' : ''}`}
-                  key={value}
-                  onClick={() => setHistoryKindFilter(value)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+              <div className="workout-history-filter-grid">
+                <div className="segmented-control segmented-control--3">
+                  {([
+                    ['all', '全部'],
+                    ['strength', '力量'],
+                    ['cardio', '有氧'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      className={`segment-button${historyKindFilter === value ? ' is-active' : ''}`}
+                      key={value}
+                      onClick={() => setHistoryKindFilter(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
-            <div className="workout-history-range-row">
-              {([
-                [7, '近 7 天'],
-                [30, '近 30 天'],
-              ] as const).map(([value, label]) => (
-                <button
-                  className={`segment-button${historyRangeDays === value ? ' is-active' : ''}`}
-                  key={value}
-                  onClick={() => setHistoryRangeDays(value)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
+                <div className="workout-history-range-row">
+                  {([
+                    [7, '近 7 天'],
+                    [30, '近 30 天'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      className={`segment-button${historyRangeDays === value ? ' is-active' : ''}`}
+                      key={value}
+                      onClick={() => setHistoryRangeDays(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <div className="stack-list workout-history-list">

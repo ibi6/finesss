@@ -34,7 +34,7 @@ describe('BodyView', () => {
     render(<BodyView targetDate={targetDate} />)
 
     const selectedBodyPanel = screen.getByText('所选日期体重').closest('article')
-    const recentPanel = screen.getByText('身体历史工作台').closest('article')
+    const recentPanel = screen.getByText('最近身体记录').closest('article')
 
     expect(selectedBodyPanel).not.toBeNull()
     expect(recentPanel).not.toBeNull()
@@ -202,7 +202,7 @@ describe('BodyView', () => {
     expect(useFitnessStore.getState().recoveryEntries).toHaveLength(initialRecoveryCount)
   }, 10000)
 
-  it('filters body history workbench and reuses body and recovery edit flows', async () => {
+  it('filters full body history after opening the tucked-away controls', async () => {
     const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
     const olderDate = shiftDateKey(targetDate, -20)
@@ -227,12 +227,13 @@ describe('BodyView', () => {
 
     render(<BodyView targetDate={targetDate} />)
 
-    expect(screen.getByText('身体历史工作台')).toBeInTheDocument()
-    expect(screen.getByLabelText('搜索身体历史')).toBeInTheDocument()
+    expect(screen.getByText('最近身体记录')).toBeInTheDocument()
+    expect(screen.queryByLabelText('搜索身体历史')).not.toBeInTheDocument()
 
-    const historyPanel = screen.getByText('身体历史工作台').closest('article')
+    const historyPanel = screen.getByText('最近身体记录').closest('article')
 
     expect(historyPanel).not.toBeNull()
+    await user.click(within(historyPanel!).getByText('查看全部身体记录'))
 
     expect(within(historyPanel!).queryByText('70.8 kg')).not.toBeInTheDocument()
     expect(within(historyPanel!).queryByText('8.2 小时睡眠')).not.toBeInTheDocument()

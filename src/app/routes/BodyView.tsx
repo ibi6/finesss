@@ -104,6 +104,7 @@ export function BodyView({ targetDate }: BodyViewProps) {
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyKindFilter, setHistoryKindFilter] = useState<'all' | 'body' | 'recovery'>('all')
   const [historyRangeDays, setHistoryRangeDays] = useState<BodyHistoryRangeDays>(7)
+  const [showHistoryControls, setShowHistoryControls] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{
     kind: 'body' | 'recovery'
     id: string
@@ -336,7 +337,7 @@ export function BodyView({ targetDate }: BodyViewProps) {
         <div className="panel-head">
           <div>
             <p className="section-kicker">身体</p>
-            <h2>把体重和恢复拆成每天都愿意补录的两步</h2>
+            <h2>今天身体状态，一眼看清</h2>
           </div>
           <div className="pill-row">
             <span className="pill">{formatDateKeyLabel(targetDate)}</span>
@@ -445,8 +446,8 @@ export function BodyView({ targetDate }: BodyViewProps) {
           <form className="feature-form panel-subsection body-form-shell" onSubmit={handleBodySubmit}>
             <div className="meal-inline-head">
               <div>
-                <p className="section-kicker">体重补录</p>
-                <h3>{editingBodyEntryId ? '修改这条体重记录' : '先把称重、体脂和围度记下来'}</h3>
+                <p className="section-kicker">记录今天</p>
+                <h3>{editingBodyEntryId ? '修改这条体重记录' : '记录今天的体重、体脂和围度'}</h3>
               </div>
               {editingBodyEntryId ? <span className="inline-note">编辑中，保存后会覆盖原记录</span> : null}
             </div>
@@ -520,8 +521,8 @@ export function BodyView({ targetDate }: BodyViewProps) {
           >
             <div className="meal-inline-head">
               <div>
-                <p className="section-kicker">恢复补录</p>
-                <h3>{editingRecoveryEntryId ? '修改这条恢复记录' : '喝水、睡眠、步数一次补完'}</h3>
+                <p className="section-kicker">恢复状态</p>
+                <h3>{editingRecoveryEntryId ? '修改这条恢复记录' : '记录今天的喝水、睡眠和步数'}</h3>
               </div>
               {latestRecoveryEntry ? (
                 <span className="inline-note">最近一次精力 {latestRecoveryEntry.energy} / 5</span>
@@ -718,55 +719,68 @@ export function BodyView({ targetDate }: BodyViewProps) {
       <article className="feature-panel feature-panel--wide">
         <div className="panel-head">
           <div>
-            <p className="section-kicker">身体历史</p>
-            <h3>身体历史工作台</h3>
+            <p className="section-kicker">最近身体</p>
+            <h3>最近身体记录</h3>
           </div>
           <span className="inline-note">{historySummaryLabel}</span>
         </div>
-        <div className="workout-history-toolbar">
-          <label className="search-field">
-            <Search size={16} />
-            <input
-              aria-label="搜索身体历史"
-              onChange={(event) => setHistoryQuery(event.target.value)}
-              placeholder="按体重、围度、睡眠、步数或喝水搜索"
-              type="search"
-              value={historyQuery}
-            />
-          </label>
-          <div className="workout-history-filter-grid">
-            <div className="segmented-control segmented-control--3">
-              {([
-                ['all', '全部'],
-                ['body', '体重'],
-                ['recovery', '恢复'],
-              ] as const).map(([value, label]) => (
-                <button
-                  className={`segment-button${historyKindFilter === value ? ' is-active' : ''}`}
-                  key={value}
-                  onClick={() => setHistoryKindFilter(value)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
+        <div className="frontstage-details history-controls-details">
+          <button
+            aria-expanded={showHistoryControls}
+            className="frontstage-summary-button"
+            onClick={() => setShowHistoryControls((current) => !current)}
+            type="button"
+          >
+            <span>查看全部身体记录</span>
+            <small>搜索、筛选和更久记录放在这里</small>
+          </button>
+          {showHistoryControls ? (
+            <div className="workout-history-toolbar">
+              <label className="search-field">
+                <Search size={16} />
+                <input
+                  aria-label="搜索身体历史"
+                  onChange={(event) => setHistoryQuery(event.target.value)}
+                  placeholder="按体重、围度、睡眠、步数或喝水搜索"
+                  type="search"
+                  value={historyQuery}
+                />
+              </label>
+              <div className="workout-history-filter-grid">
+                <div className="segmented-control segmented-control--3">
+                  {([
+                    ['all', '全部'],
+                    ['body', '体重'],
+                    ['recovery', '恢复'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      className={`segment-button${historyKindFilter === value ? ' is-active' : ''}`}
+                      key={value}
+                      onClick={() => setHistoryKindFilter(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="workout-history-range-row">
+                  {([
+                    [7, '近 7 天'],
+                    [30, '近 30 天'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      className={`segment-button${historyRangeDays === value ? ' is-active' : ''}`}
+                      key={value}
+                      onClick={() => setHistoryRangeDays(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="workout-history-range-row">
-              {([
-                [7, '近 7 天'],
-                [30, '近 30 天'],
-              ] as const).map(([value, label]) => (
-                <button
-                  className={`segment-button${historyRangeDays === value ? ' is-active' : ''}`}
-                  key={value}
-                  onClick={() => setHistoryRangeDays(value)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          ) : null}
         </div>
         <div className="stack-list workout-history-list">
           {bodyHistory.totalInRange === 0 ? (

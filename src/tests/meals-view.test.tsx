@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { MealsView } from '../app/routes/MealsView'
-import { createDateFromKey, formatDateKeyLabel, formatLocalDateKey } from '../store/date'
+import { createDateFromKey, formatLocalDateKey } from '../store/date'
 import { useFitnessStore } from '../store/useFitnessStore'
 
 describe('MealsView', () => {
@@ -11,56 +11,40 @@ describe('MealsView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
-  async function switchToLogWorkspace(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('tab', { name: '切换到记录工作区' }))
-  }
-
   async function switchToPlanWorkspace(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('tab', { name: '切换到计划工作区' }))
+    await user.click(screen.getByRole('tab', { name: '查看本周安排' }))
   }
 
-  async function switchToLibraryWorkspace(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('tab', { name: '切换到食物库工作区' }))
-  }
-
-  it('switches between logging, planning, and library workspaces', async () => {
+  it('opens with daily meal cards and keeps food data behind the logging flow', async () => {
     const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
 
     render(<MealsView targetDate={targetDate} />)
 
-    expect(screen.getByRole('tab', { name: '切换到记录工作区' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: '查看今天记录' })).toHaveAttribute(
       'aria-selected',
       'true',
     )
     expect(
-      screen.getByRole('heading', { level: 2, name: '把今天吃进去的东西迅速记清楚' }),
+      screen.getByRole('heading', { level: 2, name: '今天吃了什么，一眼看清' }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { level: 3, name: formatDateKeyLabel(targetDate) }),
-    ).toBeInTheDocument()
+    expect(screen.getByLabelText('早餐吃了什么')).toBeInTheDocument()
+    expect(screen.getByLabelText('午餐吃了什么')).toBeInTheDocument()
+    expect(screen.getByLabelText('晚餐吃了什么')).toBeInTheDocument()
+    expect(screen.getByLabelText('加餐记录折叠区')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: '切换到食物库工作区' })).not.toBeInTheDocument()
 
     await switchToPlanWorkspace(user)
 
-    expect(screen.getByRole('tab', { name: '切换到计划工作区' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: '查看本周安排' })).toHaveAttribute(
       'aria-selected',
       'true',
     )
     expect(
-      screen.getByRole('heading', { level: 3, name: '把模板固定到每周的某一餐' }),
+      screen.getByRole('heading', { level: 3, name: '把常用组合排进这一周' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { level: 3, name: '把排好的模板自动汇成采购清单' }),
-    ).toBeInTheDocument()
-
-    await switchToLibraryWorkspace(user)
-
-    expect(screen.getByRole('tab', { name: '切换到食物库工作区' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    expect(
-      screen.getByRole('heading', { level: 3, name: '收藏、搜索和沉淀食物' }),
+      screen.getByRole('heading', { level: 3, name: '按本周安排生成备餐清单' }),
     ).toBeInTheDocument()
   })
 
@@ -70,16 +54,20 @@ describe('MealsView', () => {
 
     render(<MealsView targetDate={targetDate} />)
 
-    await switchToLibraryWorkspace(user)
-    await user.click(screen.getByRole('button', { name: /新增食物/ }))
+    await user.click(screen.getByText('找不到食物？新增常用'))
+    await user.click(screen.getByRole('button', { name: /新增常用食物/ }))
 
-    await user.type(screen.getByLabelText('食物名称'), '麻辣热卤')
+    const customFoodForm = screen.getByRole('button', { name: '保存为常用' }).closest('form')
+    expect(customFoodForm).not.toBeNull()
+    const customFoodScope = within(customFoodForm as HTMLFormElement)
 
-    const servingInput = screen.getByLabelText('份量')
-    const calorieInput = screen.getByLabelText('热量')
-    const proteinInput = screen.getByLabelText('蛋白质')
-    const carbsInput = screen.getByLabelText('碳水')
-    const fatInput = screen.getByLabelText('脂肪')
+    await user.type(customFoodScope.getByLabelText('食物名称'), '麻辣热卤')
+
+    const servingInput = customFoodScope.getByLabelText('份量')
+    const calorieInput = customFoodScope.getByLabelText('热量')
+    const proteinInput = customFoodScope.getByLabelText('蛋白质')
+    const carbsInput = customFoodScope.getByLabelText('碳水')
+    const fatInput = customFoodScope.getByLabelText('脂肪')
 
     await user.clear(servingInput)
     await user.type(servingInput, '1 大碗')
@@ -91,13 +79,12 @@ describe('MealsView', () => {
     await user.type(carbsInput, '42')
     await user.clear(fatInput)
     await user.type(fatInput, '21')
-    await user.click(screen.getByRole('button', { name: '保存到食物库' }))
+    await user.click(customFoodScope.getByRole('button', { name: '保存为常用' }))
 
     const createdFood = useFitnessStore.getState().foods.find((food) => food.name === '麻辣热卤')
     expect(createdFood).toBeDefined()
     expect(createdFood?.isFavorite).toBe(true)
 
-    await switchToLogWorkspace(user)
     expect(screen.getByDisplayValue('麻辣热卤')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '保存饮食' }))
@@ -116,7 +103,7 @@ describe('MealsView', () => {
     render(<MealsView targetDate={targetDate} />)
 
     await switchToPlanWorkspace(user)
-    await user.click(screen.getByRole('button', { name: /从早餐沉淀模板/ }))
+    await user.click(screen.getByRole('button', { name: /把早餐设为常用组合/ }))
 
     const templateNameInput = screen.getByLabelText('模板名称')
     await user.clear(templateNameInput)

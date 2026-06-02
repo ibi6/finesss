@@ -414,7 +414,7 @@ export function PhotoEstimatePanel({
                         <div className="candidate-title-block">
                           <strong>{candidate.food.name}</strong>
                           <span className="pill pill--muted">
-                            {candidate.source === 'library' ? '食物库' : '常见参考'}
+                            {candidate.source === 'library' ? '常用来源' : '常见参考'}
                           </span>
                         </div>
                         <span className="candidate-score">{candidate.confidence}%</span>
@@ -489,7 +489,7 @@ export function PhotoEstimatePanel({
             </button>
             {activeCandidate?.source === 'reference' ? (
               <button className="ghost-button" onClick={handleSaveEstimateFood} type="button">
-                存进食物库
+                保存为常用
               </button>
             ) : null}
           </div>

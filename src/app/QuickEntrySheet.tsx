@@ -59,7 +59,7 @@ const modeMeta: Record<
   workout: {
     label: '训练',
     title: '把这次训练先落一笔',
-    description: '模板可以先带一版，再补完整工作台。',
+    description: '常练可以先带一版，再补完整细节。',
     icon: Dumbbell,
   },
   body: {
@@ -448,7 +448,7 @@ export function QuickEntrySheet({
             ) : null}
 
             <div className="panel-subsection quick-entry-section">
-              {selectedMealFood ? <p className="inline-note">已从食物库带入，可继续微调</p> : null}
+              {selectedMealFood ? <p className="inline-note">已从常用食物带入，可继续微调</p> : null}
               <div className="form-grid">
                 <label className="field field--span-2">
                   <span>食物名称</span>

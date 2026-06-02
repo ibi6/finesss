@@ -756,6 +756,89 @@ svg {
   align-items: stretch;
 }
 
+.meal-day-overview-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.meal-day-overview-card,
+.meal-snack-details {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.meal-day-overview-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.meal-day-overview-card.has-entries {
+  border-color: rgba(39, 165, 150, 0.26);
+  background: linear-gradient(135deg, rgba(39, 165, 150, 0.12), rgba(255, 255, 255, 0.8));
+}
+
+.meal-day-overview-head,
+.meal-snack-details summary,
+.meal-snack-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.meal-day-overview-foods,
+.meal-day-overview-empty,
+.meal-snack-body p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.meal-day-overview-foods {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.meal-day-overview-macros {
+  align-items: center;
+}
+
+.meal-day-overview-action {
+  min-height: 44px;
+}
+
+.meal-snack-details {
+  margin-top: 10px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.meal-snack-details summary {
+  min-height: 48px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.meal-snack-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.meal-snack-details summary span {
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.meal-snack-details summary small {
+  color: var(--muted);
+}
+
+.meal-snack-body {
+  padding: 0 14px 14px;
+}
+
 .meal-jump-button {
   min-height: 92px;
 }
@@ -1103,6 +1186,51 @@ svg {
 .library-toolbar {
   display: grid;
   gap: 12px;
+}
+
+.frontstage-details {
+  display: grid;
+  gap: 12px;
+}
+
+.frontstage-details summary,
+.frontstage-summary-button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  list-style: none;
+}
+
+.frontstage-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.frontstage-details summary span,
+.frontstage-summary-button span {
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.frontstage-details summary small,
+.frontstage-summary-button small {
+  color: var(--muted);
+}
+
+.meal-source-body {
+  display: grid;
+  gap: 12px;
+}
+
+.meal-source-search {
+  width: 100%;
 }
 
 .template-capture-list,
@@ -2797,6 +2925,7 @@ svg {
   }
 
   .meal-summary-grid,
+  .meal-day-overview-grid,
   .progress-grid,
   .signal-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2949,6 +3078,25 @@ svg {
   .bottom-tabbar,
   .global-quickbar--mobile-floating {
     width: calc(100vw - 16px);
+  }
+
+  .global-quickbar--mobile-compact {
+    padding: 6px;
+  }
+
+  .global-quickbar--mobile-compact .global-quickbar-row {
+    gap: 4px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .global-quickbar--mobile-compact .global-quickbar-action {
+    min-height: 56px;
+    padding: 6px 2px;
+    border-radius: 14px;
+  }
+
+  .global-quickbar--mobile-compact .global-quickbar-action span {
+    font-size: 0.62rem;
   }
 
   .app-topbar,

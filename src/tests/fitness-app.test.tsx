@@ -70,13 +70,13 @@ describe('FitnessApp', () => {
     await user.click(screen.getByRole('tab', { name: "饮食" }))
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: "把今天吃进去的东西迅速记清楚" }),
+      await screen.findByRole('heading', { level: 2, name: "今天吃了什么，一眼看清" }),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: "把训练做成能连续复用的工作台" }),
+      await screen.findByRole('heading', { level: 2, name: "今天练了什么，一眼看清" }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: new RegExp("加动作") })).toBeInTheDocument()
   })
@@ -116,7 +116,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
 
-    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '把常练模板排进这一周' })
+    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
 
     expect(weeklyPlanPanel).not.toBeNull()
@@ -144,7 +144,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
 
-    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '把常练模板排进这一周' })
+    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
 
     expect(weeklyPlanPanel).not.toBeNull()
@@ -171,7 +171,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
 
-    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '把常练模板排进这一周' })
+    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
 
     expect(weeklyPlanPanel).not.toBeNull()
@@ -196,7 +196,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
 
-    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '把常练模板排进这一周' })
+    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
 
     expect(weeklyPlanPanel).not.toBeNull()
@@ -230,7 +230,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
 
-    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '把常练模板排进这一周' })
+    const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
 
     expect(weeklyPlanPanel).not.toBeNull()
@@ -583,9 +583,9 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: "身体" }))
 
-    const bodyHeading = await screen.findByRole('heading', { level: 3, name: "先把称重、体脂和围度记下来" })
+    const bodyHeading = await screen.findByRole('heading', { level: 3, name: "记录今天的体重、体脂和围度" })
     const bodyForm = bodyHeading.closest('form')
-    const recoveryHeading = await screen.findByRole('heading', { level: 3, name: "喝水、睡眠、步数一次补完" })
+    const recoveryHeading = await screen.findByRole('heading', { level: 3, name: "记录今天的喝水、睡眠和步数" })
     const recoveryForm = recoveryHeading.closest('form')
 
     expect(bodyForm).not.toBeNull()
@@ -607,7 +607,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '身体' }))
 
-    const recoveryHeading = await screen.findByRole('heading', { level: 3, name: '喝水、睡眠、步数一次补完' })
+    const recoveryHeading = await screen.findByRole('heading', { level: 3, name: '记录今天的喝水、睡眠和步数' })
     const recoveryForm = recoveryHeading.closest('form')
 
     expect(recoveryForm).not.toBeNull()
@@ -630,7 +630,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: '身体' }))
 
-    const bodyPanel = screen.getByRole('heading', { level: 2, name: '把体重和恢复拆成每天都愿意补录的两步' }).closest('article')
+    const bodyPanel = screen.getByRole('heading', { level: 2, name: '今天身体状态，一眼看清' }).closest('article')
 
     expect(bodyPanel).not.toBeNull()
     expect((bodyPanel as HTMLElement).querySelector('.body-insight-grid')).toHaveClass(
@@ -846,7 +846,7 @@ describe('FitnessApp', () => {
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
 
-    const plannerHeading = await screen.findByRole('heading', { level: 3, name: "把常练模板排进这一周" })
+    const plannerHeading = await screen.findByRole('heading', { level: 3, name: "本周训练安排" })
     const plannerPanel = plannerHeading.closest('div')
 
     expect(plannerPanel).not.toBeNull()
