@@ -299,7 +299,11 @@ export function FitnessApp() {
   const globalQuickBar = (
     <section
       aria-label="全局快速记录"
-      className={`global-quickbar${isDesktopLayout ? ' is-desktop' : ' global-quickbar--mobile-compact'}`}
+      className={`global-quickbar${
+        isDesktopLayout
+          ? ' is-desktop'
+          : ' global-quickbar--mobile-compact global-quickbar--mobile-floating'
+      }`}
       role="region"
     >
       {isDesktopLayout ? <p className="section-kicker">全局快速记录</p> : null}
@@ -378,7 +382,11 @@ export function FitnessApp() {
         ) : null}
 
         <div className="app-main">
-          <header className={`app-topbar${isDesktopLayout ? ' is-desktop' : ' app-topbar--mobile-compact'}`}>
+          <header
+            className={`app-topbar${
+              isDesktopLayout ? ' is-desktop' : ' app-topbar--mobile-compact app-topbar--mobile-sticky'
+            }`}
+          >
             {isDesktopLayout ? (
               <div className="desktop-topbar-head">
                 <div className="brand-copy">
@@ -455,6 +463,7 @@ export function FitnessApp() {
           </header>
 
           <section className="screen-shell">{screen}</section>
+          {isDesktopLayout ? null : globalQuickBar}
           {isDesktopLayout ? null : navigation}
         </div>
       </div>

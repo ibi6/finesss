@@ -82,7 +82,7 @@ svg {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  padding: 16px 12px 0;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 0;
 }
 
 .app-frame {
@@ -129,6 +129,26 @@ svg {
   gap: 8px;
   padding: 10px;
   border-radius: 18px;
+}
+
+.app-topbar--mobile-sticky {
+  position: sticky;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  z-index: 30;
+  background: rgba(255, 252, 248, 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow:
+    0 14px 36px rgba(54, 38, 18, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-topbar--mobile-sticky,
+  .global-quickbar--mobile-floating,
+  .bottom-tabbar {
+    background: rgba(255, 252, 248, 0.96);
+  }
 }
 
 .desktop-topbar-head {
@@ -240,15 +260,15 @@ svg {
 
 .status-pill-row--mobile-compact .status-pill {
   min-width: 0;
-  min-height: 30px;
+  min-height: 44px;
   padding-inline: 8px;
   font-size: 0.76rem;
 }
 
 .mobile-settings-button {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
 }
 
 .status-pill,
@@ -286,8 +306,8 @@ svg {
 .icon-circle-button,
 .icon-button,
 .date-nav-button {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   transition:
     transform 0.18s ease,
@@ -312,6 +332,14 @@ svg {
   transform: translateY(-1px);
 }
 
+.app-topbar--mobile-sticky .mobile-settings-button:active,
+.app-topbar--mobile-sticky .date-nav-button:active,
+.app-topbar--mobile-sticky .date-chip:active,
+.global-quickbar--mobile-floating .global-quickbar-action:active,
+.bottom-tabbar .bottom-tab:active {
+  transform: translateY(1px) scale(0.98);
+}
+
 .date-toolbar {
   align-items: stretch;
 }
@@ -326,7 +354,7 @@ svg {
 
 .date-chip {
   min-width: 0;
-  height: 40px;
+  height: 44px;
   padding: 0 10px;
   font-size: 0.8rem;
 }
@@ -341,15 +369,20 @@ svg {
 .date-nav-button {
   flex-shrink: 0;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--panel-strong);
+}
+
+.app-topbar--mobile-sticky .date-nav-button,
+.app-topbar--mobile-sticky .date-chip {
+  min-height: 44px;
 }
 
 .screen-shell {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 24px;
+  padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
 }
 
 .global-quickbar {
@@ -369,6 +402,21 @@ svg {
 .global-quickbar--mobile-compact {
   padding: 8px;
   border-radius: 18px;
+}
+
+.global-quickbar--mobile-floating {
+  position: fixed;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  width: min(calc(100vw - 24px), 480px);
+  z-index: 21;
+  transform: translateX(-50%);
+  background: rgba(255, 252, 248, 0.78);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow:
+    0 18px 38px rgba(54, 38, 18, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
 }
 
 .global-quickbar-row {
@@ -413,10 +461,10 @@ svg {
 }
 
 .global-quickbar--mobile-compact .global-quickbar-action {
-  min-height: 46px;
-  gap: 3px;
-  padding: 6px 4px;
-  border-radius: 14px;
+  min-height: 60px;
+  gap: 5px;
+  padding: 8px 4px;
+  border-radius: 16px;
 }
 
 .global-quickbar--mobile-compact .global-quickbar-action svg {
@@ -430,16 +478,20 @@ svg {
 }
 
 .bottom-tabbar {
-  position: sticky;
+  position: fixed;
+  left: 50%;
   bottom: 0;
-  z-index: 18;
+  z-index: 22;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+  width: min(calc(100vw - 24px), 480px);
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   border: 1px solid var(--border);
   border-radius: 22px 22px 0 0;
   background: rgba(255, 252, 248, 0.9);
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   box-shadow: 0 -10px 30px rgba(54, 38, 18, 0.06);
 }
@@ -448,7 +500,7 @@ svg {
   display: grid;
   justify-items: center;
   gap: 4px;
-  min-height: 58px;
+  min-height: 62px;
   padding: 8px 0 6px;
   border: 1px solid transparent;
   border-radius: 16px;
@@ -2722,7 +2774,7 @@ svg {
 
 @media (min-width: 720px) {
   .app-shell {
-    padding-top: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
   }
 
   .app-frame {
@@ -2892,6 +2944,11 @@ svg {
 @media (max-width: 420px) {
   .app-shell {
     padding-inline: 8px;
+  }
+
+  .bottom-tabbar,
+  .global-quickbar--mobile-floating {
+    width: calc(100vw - 16px);
   }
 
   .app-topbar,

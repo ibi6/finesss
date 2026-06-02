@@ -88,6 +88,7 @@ describe('FitnessApp', () => {
 
     expect(topbar).not.toBeNull()
     expect(topbar).toHaveClass('app-topbar--mobile-compact')
+    expect(topbar).toHaveClass('app-topbar--mobile-sticky')
     expect(within(topbar as HTMLElement).queryByText('燃刻')).not.toBeInTheDocument()
     expect(within(topbar as HTMLElement).getByRole('button', { name: '打开设置' })).toBeInTheDocument()
     expect(within(topbar as HTMLElement).getByText(/剩 \d+ kcal/)).toBeInTheDocument()
@@ -702,14 +703,19 @@ describe('FitnessApp', () => {
     expect(within(recoveryDialog).queryByDisplayValue('salad-check')).not.toBeInTheDocument()
   })
 
-  it('hides the global quick bar on mobile tab switches', async () => {
+  it('keeps the global quick bar floating on mobile tab switches', async () => {
     const user = userEvent.setup()
 
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
 
-    expect(screen.queryByRole('region', { name: "全局快速记录" })).not.toBeInTheDocument()
+    const quickBar = screen.getByRole('region', { name: "全局快速记录" })
+    expect(quickBar).toHaveClass('global-quickbar', 'global-quickbar--mobile-floating')
+    expect(within(quickBar).getByRole('button', { name: "全局记饮食" })).toBeInTheDocument()
+    expect(within(quickBar).getByRole('button', { name: "全局记训练" })).toBeInTheDocument()
+    expect(within(quickBar).getByRole('button', { name: "全局记体重" })).toBeInTheDocument()
+    expect(within(quickBar).getByRole('button', { name: "全局记恢复" })).toBeInTheDocument()
   })
 
   it('opens all quick entry modes from the desktop global quick bar outside today', async () => {
