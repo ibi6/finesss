@@ -1,70 +1,94 @@
-# AI Dev Team Starter Kit
+# 燃刻
 
-AI Dev Team Starter Kit is a portable project template for developers who want AI assistance to behave like a small development team instead of an ad hoc chat window.
+`燃刻` 是一个中文、手机端优先（mobile-first）、本地优先（local-first）的健身与饮食记录 Web App。它把饮食、训练、身体数据、恢复和趋势回看放进同一个轻量产品里，适合想持续减脂、又不想在多个 App 来回切换的人。
 
-The human sets direction and makes final decisions. AI agents take specialized passes for product shaping, architecture, implementation, review, verification, and documentation.
+## 功能概览
 
-## Core Promise
+- `今日`：执行分、热量与蛋白质进度、阶段动力、本周任务、阶段成就、直接拉起的快速记录面板、连续记录、可一键带入的具体食物建议、恢复概览
+- `饮食`：新增 / 编辑 / 删除饮食记录、收藏常吃食物、自定义食物沉淀、把已记录餐次存成自定义模板、整套模板餐一键复用、按周几和餐次排入模板、自动汇总本周备餐清单并支持近 `3` 天 / 近 `7` 天 / 整周切换、全部 / 未备好筛选、已备好勾选和当前可见清单一键复制、拍照/上传后按内置食物库与常见参考食物快速估算热量、把估算结果存进食物库或直接记到当前餐次，并把最近识别过的食物沉成可再次带入的记录卡
+- `训练`：新增 / 编辑 / 删除训练记录、训练模板、动作组明细，并在同一页看到本周训练节奏、力量 / 有氧分布与近 7 天负荷
+- `身体`：记录体重、体脂、腰围，以及睡眠 / 步数 / 喝水 / 精力，并直接查看阶段对比和 7 天体重趋势
+- `趋势`：阶段进度、28 天打卡热力格、7 天和 28 天复盘、执行优势/补强项、体重趋势、近 7 天热量与蛋白质节奏
+- `设置`：目标规划工作台、阶段 ETA 预估、本地备份导出 / 导入、导入前摘要确认、恢复示例数据
 
-```text
-Brief before Plan.
-Plan before Build.
-Review before Trust.
-Verify before Ship.
+## 产品特性
+
+- `饮食` 首屏新增“快速记录”入口，可一键跳到 `拍照估算 / 手动录入 / 常吃带入 / 最近识别`
+- `饮食 -> 最近识别` 记录卡支持直接“记一餐”，补录同类食物时更顺手
+- 中文界面，针对手机视口优化
+- 手机端保留底部五栏导航，适合单手操作；桌面端会切成左侧导航 + 右侧双栏内容区，更适合连续回看与批量录入
+- 首次打开与清空本地状态后默认落在 `今日`，先回答“今天还差什么”，再决定是否切去 `饮食 / 训练 / 身体 / 趋势`
+- `今日建议` 会结合内置食物库、收藏状态和最近使用痕迹，给出可直接带入的饮食候选
+- `今日` 页会展示阶段节点、亮点摘要和本周任务进度，让首页既能指挥今天，也能托住这一周
+- `今日` 页会展示已解锁成就和即将解锁的节点，帮助用户持续感知到阶段推进
+- `设置` 里的备份导入不会立刻覆盖本地数据，而是先弹出确认提醒，降低误导入的风险
+- 备份确认层会直接展示备份里的用户、导出日期、备份类型和各类记录数量，导入前就能看清将要覆盖什么
+- `饮食` 页支持把早餐 / 午餐 / 晚餐 / 加餐模板排进每周固定槽位，并在当天一键带入当前日期
+- `饮食` 页会把本周排好的模板自动汇总成移动端备餐清单，可按食物项标记“已备好”并在刷新后保留状态
+- `饮食` 页的备餐清单支持在 `近3天 / 近7天 / 整周` 之间切换，方便临近备餐和整周总览之间快速来回看
+- `饮食` 页的备餐清单支持 `全部 / 未备好` 视角切换；已经全部备好的时候，会直接给出更轻的空态提示
+- `饮食` 页的备餐清单支持复制当前可见内容，方便把采购 / 备餐项直接贴到聊天、备忘录或外部清单工具里
+- `饮食` 页的 `拍照估算` 会把最近识别过的内容保留成轻量记录，后面碰到同类食物时可以直接再次带入；如果是参考估算出的陌生食物，也能先存进食物库再复用
+- `饮食` 页的 `拍照估算` 现在会参考当前餐次上下文：同样是空白关键词时，早餐更偏向酸奶 / 燕麦 / 鸡蛋，晚餐更偏向正餐候选，线索 chip 也会跟着当前餐次切换
+- `饮食` 页的 `拍照估算` 现在会把上传文件名里的线索显式展示出来：像 `breakfast`、`post-workout` 这样的 cue 会直接出现在识别摘要里，并同步影响顶部候选和“常见线索” chip
+- 使用 `localStorage` 持久化数据，默认 key 为 `peakfuel-store`
+- 内置示例数据与“重置示例”按钮，便于演示和试用
+- 持久化版本迁移与数据合并已启用，旧记录会自动补齐本地日期键，新版本内置食物库也会自动补进现有本地数据
+
+## 技术栈
+
+- `Vite`
+- `React 19`
+- `TypeScript`
+- `Zustand`
+- `Recharts`
+- `Vitest`
+- `ESLint`
+
+## 本地运行
+
+```bash
+pnpm install
+pnpm dev --host 127.0.0.1 --port 4173
 ```
 
-## What's Included
-
-- `AGENTS.md`: the main instruction surface for AI assistants.
-- `docs/workflows/`: step-by-step workflow stages from idea intake to release.
-- `docs/agents/`: role cards for product, architecture, implementation, review, testing, and documentation.
-- `docs/templates/`: reusable task artifact templates.
-- `docs/rituals/`: memorable collaboration checkpoints.
-- `tasks/`: per-task working artifacts.
-- `.omc/`: optional state and memory files for orchestration tools.
-
-## Quick Start
-
-1. Copy this template into a new repository.
-2. Read `AGENTS.md` and adjust project-specific preferences.
-3. Create a task folder under `tasks/<yyyy-mm-dd>-<slug>/`.
-4. Start with `docs/templates/product-brief.md`.
-5. Ask the AI to follow standard mode unless the task clearly qualifies for fast lane.
-6. Keep review and verification as separate passes.
-7. Record exact verification evidence before shipping.
-
-## Standard Mode
+浏览器打开：
 
 ```text
-Intake -> Explore -> Plan -> Build -> Review -> Verify -> Ship
+http://127.0.0.1:4173/
 ```
 
-Use standard mode for multi-file changes, architecture decisions, dependency changes, user data, permissions, security, release work, or anything with meaningful product risk.
+## 常用命令
 
-## Fast Lane
-
-```text
-Intake -> Plan -> Build -> Verify
+```bash
+pnpm dev
+pnpm test
+pnpm lint
+pnpm build
 ```
 
-Use fast lane for typo fixes, small README edits, simple text changes, and narrow configuration updates. The assistant must explain why fast lane is safe.
+## 数据说明
 
-## Human Role
+- 当前版本不包含账号体系、云同步和多设备同步
+- 数据保存在当前浏览器本地；清空浏览器站点数据后记录会丢失
+- 导出备份采用带 `app / version / exportedAt / data` 的版本化 JSON 包装格式；导入时同时兼容该格式和旧的原始 snapshot JSON
+- 导入备份前会先弹出确认提示，并展示备份摘要，因为导入会覆盖当前本地记录；更稳妥的操作是先额外导出一份当前备份
+- `拍照估算` 当前采用本地食物库 + 常见参考食物匹配与份数换算，不包含真正的视觉识别模型
+- `拍照估算` 会读取上传文件名里的关键词和上下文 cue，但这仍是启发式匹配，不代表真正看懂了图片内容
+- 如果只是想回到演示状态，可以直接使用页面右上角的 `重置示例`
 
-You are the final decision-maker. The AI team can explore, propose, implement, review, verify, and document, but it should not silently change scope or approve its own work.
+## 验证状态
 
-## First Task Pattern
+2026-05-29 已完成以下验证：
 
-Create a folder like this:
-
-```text
-tasks/2026-05-26-build-notes-app/
-+-- brief.md
-+-- plan.md
-+-- execution-log.md
-+-- review.md
-+-- verification.md
-+-- release.md
-```
-
-Use the templates in `docs/templates/` to keep each artifact focused.
+- `pnpm test`
+- `pnpm lint`
+- `pnpm build`
+- 手机视口手动检查
+- 刷新后持久化检查（已确认旧数据迁移后仍保留，并会补齐新增食物库）
+- `饮食 -> 本周排餐` 手动检查（已确认排餐保存、刷新后持久化、带入当前日期均正常）
+- `饮食 -> 本周备餐` 手动检查（已确认清单自动汇总、已备好勾选、刷新后持久化均正常）
+- `饮食 -> 本周备餐范围切换` 手动检查（已确认近 `3` 天 / 近 `7` 天 / 整周切换后统计、安排次数与上下文文案同步变化）
+- `饮食 -> 本周备餐筛选 + 复制清单` 手动检查（已确认 `全部 / 未备好` 切换、待处理空态、复制当前可见清单以及窄屏工具栏排版均正常）
+- `饮食 -> 拍照估算记录` 手动检查（已确认估算带入后会生成最近识别记录，且可从记录卡再次带入表单）
+- `饮食 -> 拍照估算参考候选` 手动检查（已确认输入 `寿司` 这类陌生食物时会出现参考候选，可存进食物库并直接记到当前餐次）

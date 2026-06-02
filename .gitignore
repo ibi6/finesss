@@ -2,3 +2,40 @@
 .worktrees/
 .superpowers/
 .playwright-mcp/
+node_modules/
+dist/
+coverage/
+
+# Build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+*.apk
+*.aab
+*.aar
+
+# Local previews and logs
+*.log
+.http-*.err.log
+.http-*.out.log
+.preview-*.err.log
+.preview-*.out.log
+.vite-*.err.log
+.vite-*.out.log
+
+# Generated QA screenshots and local handoff bundles
+/*.png
+/*.zip
+peakfuel-frontend-code/
+peakfuel-scaffold/
+installer-scan.csv
+page-snapshot.md
+desktop-home-snapshot.md
+mobile-meals-snapshot.md
+playwright-*-snapshot.md
