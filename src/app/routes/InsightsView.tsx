@@ -150,7 +150,9 @@ export function InsightsView({ advancedOpenToken = 0, targetDate }: InsightsView
 
   useEffect(() => {
     if (advancedOpenToken > 0) {
-      setShowAdvancedTrends(true)
+      const handle = window.setTimeout(() => setShowAdvancedTrends(true), 0)
+
+      return () => window.clearTimeout(handle)
     }
   }, [advancedOpenToken])
 

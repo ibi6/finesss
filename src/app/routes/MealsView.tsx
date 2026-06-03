@@ -644,7 +644,9 @@ export function MealsView({ advancedOpenToken = 0, targetDate }: MealsViewProps)
 
   useEffect(() => {
     if (advancedOpenToken > 0) {
-      setShowAdvancedTools(true)
+      const handle = window.setTimeout(() => setShowAdvancedTools(true), 0)
+
+      return () => window.clearTimeout(handle)
     }
   }, [advancedOpenToken])
 

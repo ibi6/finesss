@@ -187,7 +187,9 @@ export function WorkoutsView({ advancedOpenToken = 0, targetDate }: WorkoutsView
 
   useEffect(() => {
     if (advancedOpenToken > 0) {
-      setShowAdvancedTools(true)
+      const handle = window.setTimeout(() => setShowAdvancedTools(true), 0)
+
+      return () => window.clearTimeout(handle)
     }
   }, [advancedOpenToken])
 

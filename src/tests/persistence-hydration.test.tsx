@@ -101,7 +101,8 @@ describe('persisted store hydration', () => {
 
     render(<FitnessApp />)
 
-    expect(screen.getByText('1 餐')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: '补午餐' })).toBeInTheDocument()
+    expect(screen.getByText('已吃 320 kcal，训练未记')).toBeInTheDocument()
     expect(useFitnessStore.getState().mealEntries[0]).toMatchObject({
       id: 'legacy-meal-entry',
       foodName: '隔夜燕麦',
