@@ -151,5 +151,6 @@ describe('buildTodayFocus', () => {
 
     expect(focus.summary).toMatch(/已吃 \d+ kcal/)
     expect(focus.summary).toMatch(/训练/)
+    expect(focus.summary).not.toMatch(/[\r\n]/)
   })
 })
