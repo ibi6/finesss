@@ -35,12 +35,23 @@ describe('AI server helpers', () => {
           fat: 27,
           sourceFoodId: 'food-spicy-chicken-burger',
         },
+        {
+          name: '鸡肉卷',
+          servingLabel: '1 个',
+          calories: 430,
+          protein: 26,
+          carbs: 44,
+          fat: 14,
+          sourceFoodId: 'food-chicken-wrap',
+        },
       ],
     })
 
     expect(result.provider).toBe('fallback')
     expect(result.estimate.foodName).toBe('麦辣鸡腿堡')
     expect(result.estimate.calories).toBe(520)
+    expect(result.alternatives).toHaveLength(2)
+    expect(result.alternatives[1].foodName).toBe('鸡肉卷')
     expect(result.note).toContain('本地')
   })
 })

@@ -117,7 +117,7 @@ describe('QuickEntrySheet food lookup', () => {
     expect(within(dialog).getByLabelText('热量')).toHaveValue(520)
   })
 
-  it('can ask the server proxy to identify a quick food photo', async () => {
+  it('shows AI photo candidates and fills the meal only after one is selected', async () => {
     const user = userEvent.setup()
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:quick-food-photo'),
@@ -136,6 +136,26 @@ describe('QuickEntrySheet food lookup', () => {
           fat: 14,
           sourceFoodId: null,
         },
+        alternatives: [
+          {
+            foodName: 'AI 识别鸡肉卷',
+            servingLabel: '1 个',
+            calories: 430,
+            protein: 26,
+            carbs: 44,
+            fat: 14,
+            sourceFoodId: null,
+          },
+          {
+            foodName: '米饭套餐',
+            servingLabel: '1 份',
+            calories: 680,
+            protein: 32,
+            carbs: 86,
+            fat: 22,
+            sourceFoodId: null,
+          },
+        ],
         confidence: 82,
         note: '按照片识别估算。',
       }),
@@ -164,6 +184,12 @@ describe('QuickEntrySheet food lookup', () => {
         }),
       )
     })
+
+    const aiCandidate = await within(dialog).findByRole('button', { name: '带入 AI 识别鸡肉卷' })
+    expect(within(dialog).getByRole('button', { name: '带入 米饭套餐' })).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('食物名称')).not.toHaveValue('AI 识别鸡肉卷')
+
+    await user.click(aiCandidate)
 
     expect(within(dialog).getByLabelText('食物名称')).toHaveValue('AI 识别鸡肉卷')
     expect(within(dialog).getByLabelText('热量')).toHaveValue(430)

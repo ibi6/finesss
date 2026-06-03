@@ -91,6 +91,29 @@ function normalizeEstimate(estimate) {
   }
 }
 
+function normalizeEstimateList(items) {
+  if (!Array.isArray(items)) {
+    return []
+  }
+
+  const seen = new Set()
+
+  return items
+    .map((item) => normalizeEstimate({ ...item, foodName: item?.foodName ?? item?.name }))
+    .filter((item) => item.foodName && item.calories > 0)
+    .filter((item) => {
+      const key = `${item.foodName}|${item.servingLabel}|${item.calories}`
+
+      if (seen.has(key)) {
+        return false
+      }
+
+      seen.add(key)
+      return true
+    })
+    .slice(0, 3)
+}
+
 function getOpenAiApiKey() {
   return process.env.OPENAI_API_KEY?.trim() ?? ''
 }
@@ -235,13 +258,13 @@ export function buildCoachFallback(payload = {}) {
 
 export function buildFoodVisionFallback(payload = {}) {
   const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
-  const candidate = candidates
-    .map((item) => normalizeEstimate({ ...item, foodName: item?.foodName ?? item?.name }))
-    .find((item) => item.foodName && item.calories > 0) ?? null
+  const alternatives = normalizeEstimateList(candidates)
+  const candidate = alternatives[0] ?? null
 
   return {
     provider: 'fallback',
     estimate: candidate ?? { ...FALLBACK_FOOD },
+    alternatives: candidate ? alternatives : [{ ...FALLBACK_FOOD }],
     confidence: candidate ? 72 : 48,
     note: candidate ? '本地候选估算，建议按实际份量微调。' : '本地没有足够候选，已给一份保守估算。',
   }
@@ -259,9 +282,14 @@ function normalizeCoachAdvice(advice, fallback) {
 }
 
 function normalizeFoodVisionAdvice(advice, fallback) {
+  const estimate = normalizeEstimate(advice?.estimate)
+  const alternatives = normalizeEstimateList([estimate, ...(Array.isArray(advice?.alternatives) ? advice.alternatives : [])])
+  const fallbackAlternatives = Array.isArray(fallback.alternatives) ? fallback.alternatives : [fallback.estimate]
+
   return {
     provider: 'openai',
-    estimate: normalizeEstimate(advice?.estimate),
+    estimate: alternatives[0] ?? fallback.estimate,
+    alternatives: alternatives.length > 0 ? alternatives : fallbackAlternatives,
     confidence: Math.round(clampNumber(advice?.confidence, 1, 100)),
     note: firstMeaningfulString(advice?.note, fallback.note),
   }
@@ -306,7 +334,7 @@ export async function createFoodVisionEstimate(payload = {}) {
     schema: {
       type: 'object',
       additionalProperties: false,
-      required: ['estimate', 'confidence', 'note'],
+      required: ['estimate', 'alternatives', 'confidence', 'note'],
       properties: {
         estimate: {
           type: 'object',
@@ -322,6 +350,25 @@ export async function createFoodVisionEstimate(payload = {}) {
             sourceFoodId: { anyOf: [{ type: 'string' }, { type: 'null' }] },
           },
         },
+        alternatives: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 3,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['foodName', 'servingLabel', 'calories', 'protein', 'carbs', 'fat', 'sourceFoodId'],
+            properties: {
+              foodName: { type: 'string' },
+              servingLabel: { type: 'string' },
+              calories: { type: 'number' },
+              protein: { type: 'number' },
+              carbs: { type: 'number' },
+              fat: { type: 'number' },
+              sourceFoodId: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+            },
+          },
+        },
         confidence: { type: 'number' },
         note: { type: 'string' },
       },
@@ -331,6 +378,7 @@ export async function createFoodVisionEstimate(payload = {}) {
       '你是“燃刻”App 的食物照片识别助手。',
       '请结合照片、文件名、搜索词和本地候选，估算一份餐食营养。',
       '优先贴近本地候选；如果照片信息不足，选择最可能候选或保守估算。',
+      '请给出 1-3 个候选，estimate 必须是 alternatives 里的最可能项。',
       '只返回 JSON，不要 Markdown。',
       `照片名：${firstMeaningfulString(payload.photoName, 'unknown')}`,
       `搜索词：${firstMeaningfulString(payload.query, '') || '无'}`,

@@ -58,6 +58,7 @@ interface AiFoodVisionEstimate {
 interface AiFoodVisionResponse {
   provider: 'fallback' | 'openai' | string
   estimate: AiFoodVisionEstimate
+  alternatives?: AiFoodVisionEstimate[]
   confidence: number
   note: string
 }
@@ -151,6 +152,25 @@ function createRecoveryForm(entry: RecoveryEntry | null, preset?: RecoveryPreset
 
 function multiplyMacro(value: number, servings: number) {
   return Number((value * servings).toFixed(0))
+}
+
+function normalizeAiVisionEstimates(result: AiFoodVisionResponse) {
+  const candidates = result.alternatives && result.alternatives.length > 0 ? result.alternatives : [result.estimate]
+  const seen = new Set<string>()
+
+  return candidates
+    .filter((estimate) => estimate.foodName.trim() && Number.isFinite(Number(estimate.calories)))
+    .filter((estimate) => {
+      const key = `${estimate.foodName}|${estimate.servingLabel}|${estimate.calories}`
+
+      if (seen.has(key)) {
+        return false
+      }
+
+      seen.add(key)
+      return true
+    })
+    .slice(0, 3)
 }
 
 function readFileAsDataUrl(file: File) {
@@ -267,6 +287,7 @@ export function QuickEntrySheet({
   const [quickPhotoPreviewUrl, setQuickPhotoPreviewUrl] = useState<string | null>(null)
   const [selectedPhotoFoodId, setSelectedPhotoFoodId] = useState<string | null>(null)
   const [aiVisionStatus, setAiVisionStatus] = useState('')
+  const [aiVisionEstimates, setAiVisionEstimates] = useState<AiFoodVisionEstimate[]>([])
   const [isAiVisionLoading, setIsAiVisionLoading] = useState(false)
   const [workoutForm, setWorkoutForm] = useState(() =>
     createWorkoutForm(requestedWorkoutTemplate ?? latestWorkoutTemplate),
@@ -409,6 +430,7 @@ export function QuickEntrySheet({
       fat: String(Math.round(estimate.fat)),
       sourceFoodId: estimate.sourceFoodId,
     }))
+    setAiVisionStatus(`已带入 ${estimate.foodName}，可按实际份量微调。`)
   }
 
   async function handleQuickPhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -427,6 +449,7 @@ export function QuickEntrySheet({
     setQuickPhotoDataUrl('')
     setSelectedPhotoFoodId(null)
     setAiVisionStatus('')
+    setAiVisionEstimates([])
 
     try {
       setQuickPhotoDataUrl(await readFileAsDataUrl(file))
@@ -473,12 +496,15 @@ export function QuickEntrySheet({
       }
 
       const result = (await response.json()) as AiFoodVisionResponse
-      applyAiFoodEstimate(result.estimate)
-      setAiVisionStatus(result.note || `AI 已带入，可信度约 ${Math.round(result.confidence)}%`)
+      const estimates = normalizeAiVisionEstimates(result)
+      setAiVisionEstimates(estimates)
+      setAiVisionStatus(
+        estimates.length > 0
+          ? `识别完成，选一个候选带入。${result.confidence ? ` 可信度约 ${Math.round(result.confidence)}%` : ''}`
+          : 'AI 没有给出可用候选，可以先用本地照片候选。',
+      )
     } catch {
-      if (quickPhotoActiveCandidate) {
-        applyPhotoCandidate(quickPhotoActiveCandidate)
-      }
+      setAiVisionEstimates([])
       setAiVisionStatus('AI 识别暂时不可用，已保留本地照片候选。')
     } finally {
       setIsAiVisionLoading(false)
@@ -776,6 +802,29 @@ export function QuickEntrySheet({
                         {isAiVisionLoading ? '识别中...' : 'AI 识别照片'}
                       </button>
                       {aiVisionStatus ? <span className="inline-note">{aiVisionStatus}</span> : null}
+                    </div>
+                  ) : null}
+
+                  {aiVisionEstimates.length > 0 ? (
+                    <div className="quick-photo-ai-candidate-grid" aria-label="AI 识别候选">
+                      {aiVisionEstimates.map((estimate) => (
+                        <button
+                          aria-label={`带入 ${estimate.foodName}`}
+                          className="list-item list-item--dense quick-photo-ai-candidate"
+                          key={`${estimate.foodName}-${estimate.servingLabel}-${estimate.calories}`}
+                          onClick={() => applyAiFoodEstimate(estimate)}
+                          type="button"
+                        >
+                          <div>
+                            <strong>{estimate.foodName}</strong>
+                            <p>{estimate.servingLabel}</p>
+                          </div>
+                          <div className="numeric-meta">
+                            <strong>{Math.round(estimate.calories)} kcal</strong>
+                            <span>{Math.round(estimate.protein)} g 蛋白</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   ) : null}
 

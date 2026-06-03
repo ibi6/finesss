@@ -2647,6 +2647,18 @@ svg {
   border-radius: 15px;
 }
 
+.quick-photo-ai-candidate-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-photo-ai-candidate {
+  width: 100%;
+  text-align: left;
+  border-color: rgba(39, 165, 150, 0.16);
+  background: rgba(237, 252, 249, 0.72);
+}
+
 .quick-photo-candidate-grid {
   display: grid;
   gap: 8px;
