@@ -2,7 +2,7 @@
 import userEvent from '@testing-library/user-event'
 
 import { FitnessApp } from '../app/FitnessApp'
-import { createDateFromKey, formatDateKeyLabel, formatLocalDateKey, shiftDateKey } from '../store/date'
+import { formatLocalDateKey } from '../store/date'
 import { useFitnessStore } from '../store/useFitnessStore'
 
 function mockMatchMedia(matches: boolean) {
@@ -43,14 +43,6 @@ function mockMatchMedia(matches: boolean) {
   }
 }
 
-function getTodayQuickPanel() {
-  const panel = screen.getByRole('heading', { level: 3, name: "下一件事别拖" }).closest('article')
-
-  expect(panel).not.toBeNull()
-
-  return panel as HTMLElement
-}
-
 describe('FitnessApp', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -65,7 +57,8 @@ describe('FitnessApp', () => {
 
     render(<FitnessApp />)
 
-    expect(screen.getByRole('heading', { level: 3, name: "今天最值得先补的几步" })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: "补晚餐" })).toBeInTheDocument()
+    expect(screen.getByText(/已吃 \d+ kcal，训练/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
 
@@ -97,18 +90,23 @@ describe('FitnessApp', () => {
     expect(within(topbar as HTMLElement).getByRole('button', { name: '查看后一天' })).toBeInTheDocument()
   })
 
-  it('uses a compact mobile rail for today quick actions', async () => {
+  it('shows one mobile homepage task and one summary line', async () => {
     const user = userEvent.setup()
 
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '今日' }))
 
-    const quickPanel = screen.getByRole('heading', { level: 3, name: '下一件事别拖' }).closest('article')
+    const focusCard = screen.getByRole('heading', { level: 2, name: '补晚餐' }).closest('article')
 
-    expect(quickPanel).not.toBeNull()
-    expect(quickPanel).toHaveClass('quick-panel', 'quick-panel--compact')
-    expect((quickPanel as HTMLElement).querySelector('.quick-grid')).toHaveClass('quick-grid', 'quick-grid--rail')
+    expect(focusCard).not.toBeNull()
+    expect(focusCard).toHaveClass('today-focus-card')
+    expect(within(focusCard as HTMLElement).getByText('你现在最该做')).toBeInTheDocument()
+    expect(within(focusCard as HTMLElement).getByText(/已吃 \d+ kcal，训练/)).toBeInTheDocument()
+    expect(within(focusCard as HTMLElement).getByRole('button', { name: '去记晚餐' })).toBeInTheDocument()
+    expect(screen.queryByText('阶段动力')).not.toBeInTheDocument()
+    expect(screen.queryByText('阶段成就')).not.toBeInTheDocument()
+    expect(screen.queryByText('今日建议')).not.toBeInTheDocument()
   })
 
   it('uses denser mobile classes for the workout weekly plan workbench', async () => {
@@ -250,55 +248,34 @@ describe('FitnessApp', () => {
     expect((copyBlock as HTMLElement).querySelector('p')).toHaveClass('weekly-plan-current-copy-text--ultra-tight')
   })
 
-  it('uses compact mobile rails in the today focus panel', async () => {
+  it('keeps the simplified today card free of the old metric rails', async () => {
     const user = userEvent.setup()
 
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '今日' }))
 
-    const focusPanel = screen.getByRole('heading', { level: 2, name: /今天还差 \d+ 件事/ }).closest('article')
+    const focusPanel = screen.getByRole('heading', { level: 2, name: '补晚餐' }).closest('article')
 
     expect(focusPanel).not.toBeNull()
-    expect(focusPanel).toHaveClass('focus-panel', 'focus-panel--compact')
-    expect((focusPanel as HTMLElement).querySelector('.focus-meta-row')).toHaveClass(
-      'focus-meta-row',
-      'focus-meta-row--rail',
-    )
-    expect((focusPanel as HTMLElement).querySelector('.stat-row--metrics')).toHaveClass(
-      'stat-row',
-      'stat-row--metrics',
-      'stat-row--metrics-rail',
-    )
-    expect((focusPanel as HTMLElement).querySelector('.progress-grid')).toHaveClass(
-      'progress-grid',
-      'progress-grid--compact',
-      'progress-grid--rail',
-    )
-    expect(within(focusPanel as HTMLElement).queryByText(/饮食、训练、恢复和体重都在这里汇总/)).not.toBeInTheDocument()
+    expect(focusPanel).toHaveClass('today-focus-card')
+    expect((focusPanel as HTMLElement).querySelector('.focus-meta-row')).not.toBeInTheDocument()
+    expect((focusPanel as HTMLElement).querySelector('.stat-row--metrics')).not.toBeInTheDocument()
+    expect((focusPanel as HTMLElement).querySelector('.progress-grid')).not.toBeInTheDocument()
   })
 
-  it('keeps the compact today focus panel rails on a single line', async () => {
+  it('opens quick entry from the simplified today focus action', async () => {
     const user = userEvent.setup()
 
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '今日' }))
 
-    const focusPanel = screen.getByRole('heading', { level: 2, name: /今天还差 \d+ 件事/ }).closest('article')
+    await user.click(screen.getByRole('button', { name: '去记晚餐' }))
 
-    expect(focusPanel).not.toBeNull()
-    expect((focusPanel as HTMLElement).querySelector('.focus-meta-row')).toHaveClass(
-      'focus-meta-row',
-      'focus-meta-row--rail',
-      'focus-meta-row--compact',
-    )
-    expect((focusPanel as HTMLElement).querySelector('.progress-grid')).toHaveClass(
-      'progress-grid',
-      'progress-grid--compact',
-      'progress-grid--rail',
-      'progress-grid--tight',
-    )
+    const dialog = screen.getByRole('dialog', { name: '快速记录面板' })
+    expect(within(dialog).getByRole('tab', { name: '饮食' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(dialog).getByDisplayValue('晚餐')).toBeInTheDocument()
   })
 
   it('scrolls the selected mobile date chip into view', () => {
@@ -671,7 +648,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "今日" }))
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记饮食") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
 
     const dialog = screen.getByRole('dialog', { name: "快速记录面板" })
     await user.click(within(dialog).getByRole('button', { name: new RegExp("鸡胸饭") }))
@@ -690,19 +667,18 @@ describe('FitnessApp', () => {
 
     render(<FitnessApp />)
 
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记饮食") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
     const mealDialog = screen.getByRole('dialog', { name: "快速记录面板" })
     await user.type(within(mealDialog).getByLabelText("食物名称"), 'salad-check')
     await user.click(within(mealDialog).getByRole('button', { name: "关闭快速记录" }))
 
     expect(screen.queryByRole('dialog', { name: "快速记录面板" })).not.toBeInTheDocument()
 
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记恢复") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
 
-    const recoveryDialog = screen.getByRole('dialog', { name: "快速记录面板" })
-    expect(within(recoveryDialog).getByRole('tab', { name: "恢复" })).toHaveAttribute('aria-selected', 'true')
-    expect(within(recoveryDialog).getByLabelText("喝水")).toBeInTheDocument()
-    expect(within(recoveryDialog).queryByDisplayValue('salad-check')).not.toBeInTheDocument()
+    const reopenedDialog = screen.getByRole('dialog', { name: "快速记录面板" })
+    expect(within(reopenedDialog).getByRole('tab', { name: "饮食" })).toHaveAttribute('aria-selected', 'true')
+    expect(within(reopenedDialog).queryByDisplayValue('salad-check')).not.toBeInTheDocument()
   })
 
   it('opens the smart record sheet from the mobile record button', async () => {
@@ -805,9 +781,10 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "今日" }))
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记训练") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
 
     const dialog = screen.getByRole('dialog', { name: "快速记录面板" })
+    await user.click(within(dialog).getByRole('tab', { name: "训练" }))
     await user.click(within(dialog).getByRole('button', { name: new RegExp("腿部日") }))
 
     expect(within(dialog).getByLabelText("训练标题")).toHaveValue("腿部日")
@@ -1784,190 +1761,6 @@ describe('FitnessApp', () => {
     expect(keywordInput.value).toBe('')
   })
 
-  it('opens quick entry from the today coach suggestions', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    expect(screen.getByRole('heading', { level: 3, name: "别断掉这股节奏" })).toBeInTheDocument()
-    expect(screen.getByText("还差 85 g 蛋白")).toBeInTheDocument()
-
-    const coachPanel = screen.getByRole('heading', { level: 3, name: "今天最值得先补的几步" }).closest('article')
-    expect(coachPanel).not.toBeNull()
-
-    await user.click(within(coachPanel as HTMLElement).getAllByRole('button').at(-1) as HTMLButtonElement)
-
-    expect(screen.getByRole('dialog', { name: "快速记录面板" })).toBeInTheDocument()
-  })
-
-  it('prefills the quick meal sheet from a coach food suggestion', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    const coachPanel = screen.getByRole('heading', { level: 3, name: "今天最值得先补的几步" }).closest('article')
-    expect(coachPanel).not.toBeNull()
-
-    await user.click(within(coachPanel as HTMLElement).getByRole('button', { name: new RegExp("鸡胸饭") }))
-
-    const dialog = screen.getByRole('dialog', { name: "快速记录面板" })
-
-    expect(within(dialog).getByLabelText("食物名称")).toHaveValue("鸡胸饭")
-    expect(within(dialog).getByLabelText("蛋白质")).toHaveValue(44)
-  })
-
-  it('opens quick workout entry from a today coach workout suggestion', async () => {
-    const user = userEvent.setup()
-    const targetDate = formatLocalDateKey(new Date())
-
-    act(() => {
-      const snapshot = useFitnessStore.getState()
-      snapshot.replaceSnapshot({
-        workoutSessions: snapshot.workoutSessions.filter((entry) => entry.dateKey !== targetDate),
-      })
-    })
-
-    render(<FitnessApp />)
-
-    const coachPanel = screen
-      .getByRole('heading', {
-        level: 3,
-        name: '\u4eca\u5929\u6700\u503c\u5f97\u5148\u8865\u7684\u51e0\u6b65',
-      })
-      .closest('article')
-    expect(coachPanel).not.toBeNull()
-    expect(
-      within(coachPanel as HTMLElement).getByText('\u672c\u5468\u8fd8\u5dee 3 \u6b21\u8bad\u7ec3'),
-    ).toBeInTheDocument()
-
-    await user.click(
-      within(coachPanel as HTMLElement).getByRole('button', { name: /\u63a8\u8bad\u7ec3/ }),
-    )
-
-    const dialog = screen.getByRole('dialog', {
-      name: '\u5feb\u901f\u8bb0\u5f55\u9762\u677f',
-    })
-
-    expect(within(dialog).getByLabelText('\u8bad\u7ec3\u6807\u9898')).toHaveValue(
-      '\u63a8\u8bad\u7ec3',
-    )
-    expect(within(dialog).getByLabelText('\u8bad\u7ec3\u7c7b\u578b')).toHaveValue('strength')
-
-    await user.click(
-      within(dialog).getByRole('button', { name: '\u4fdd\u5b58\u8bad\u7ec3' }),
-    )
-
-    expect(
-      useFitnessStore
-        .getState()
-        .workoutSessions.some((session) => session.title === '\u63a8\u8bad\u7ec3'),
-    ).toBe(true)
-  })
-
-  it('prefills quick recovery entry from a today coach recovery suggestion', async () => {
-    const user = userEvent.setup()
-    const targetDate = formatLocalDateKey(new Date())
-
-    act(() => {
-      const snapshot = useFitnessStore.getState()
-      snapshot.replaceSnapshot({
-        ...snapshot,
-        recoveryEntries: snapshot.recoveryEntries.filter((entry) => entry.dateKey !== targetDate),
-      })
-    })
-
-    render(<FitnessApp />)
-
-    const coachPanel = screen.getByRole('heading', { level: 3, name: "今天最值得先补的几步" }).closest('article')
-    expect(coachPanel).not.toBeNull()
-
-    await user.click(within(coachPanel as HTMLElement).getByRole('button', { name: new RegExp("高压日") }))
-
-    const dialog = screen.getByRole('dialog', { name: "快速记录面板" })
-
-    expect(within(dialog).getByLabelText("喝水")).toHaveValue(3.2)
-    expect(within(dialog).getByLabelText("步数")).toHaveValue(6000)
-    expect(within(dialog).getByLabelText("睡眠")).toHaveValue(8)
-    expect(within(dialog).getByRole('radio', { name: '2' })).toHaveAttribute('aria-checked', 'true')
-
-    await user.click(within(dialog).getByRole('button', { name: "保存恢复" }))
-
-    expect(
-      useFitnessStore
-        .getState()
-        .recoveryEntries.some(
-          (entry) => entry.dateKey === targetDate && entry.waterLiters === 3.2 && entry.sleepHours === 8,
-      ),
-    ).toBe(true)
-  })
-
-  it('uses a compact mobile rail for coach suggestions in today', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const coachPanel = screen.getByRole('heading', { level: 3, name: '今天最值得先补的几步' }).closest('article')
-
-    expect(coachPanel).not.toBeNull()
-    expect(within(coachPanel as HTMLElement).getByText('还差 85 g 蛋白')).toBeInTheDocument()
-    expect((coachPanel as HTMLElement).querySelector('.coach-suggestion-row')).toHaveClass(
-      'coach-suggestion-row',
-      'coach-suggestion-row--rail',
-    )
-    expect((coachPanel as HTMLElement).querySelectorAll('.coach-suggestion-button').length).toBeGreaterThanOrEqual(2)
-  })
-
-  it('applies a planned meal template from the today coach panel', async () => {
-    const user = userEvent.setup()
-    const targetDate = formatLocalDateKey(new Date())
-    const weekday = new Date().getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
-
-    act(() => {
-      const snapshot = useFitnessStore.getState()
-      snapshot.replaceSnapshot({
-        weeklyMealPlans: [
-          {
-            id: 'weekly-plan-today-dinner',
-            weekday,
-            mealType: 'dinner',
-            templateId: 'meal-template-cut-dinner',
-          },
-        ],
-      })
-    })
-
-    render(<FitnessApp />)
-
-    const coachPanel = screen
-      .getByRole('heading', {
-        level: 3,
-        name: '\u4eca\u5929\u6700\u503c\u5f97\u5148\u8865\u7684\u51e0\u6b65',
-      })
-      .closest('article')
-    expect(coachPanel).not.toBeNull()
-
-    await user.click(
-      within(coachPanel as HTMLElement).getByRole('button', { name: /\u51cf\u8102\u665a\u9910/ }),
-    )
-
-    const plannedDinnerEntries = useFitnessStore
-      .getState()
-      .mealEntries.filter(
-        (entry) =>
-          entry.dateKey === targetDate &&
-          entry.mealType === 'dinner' &&
-          entry.foodName === '\u4e09\u6587\u9c7c\u6c99\u62c9',
-      )
-
-    expect(plannedDinnerEntries).toHaveLength(1)
-  })
-
   it('updates existing body and recovery entries from quick entry instead of duplicating them', async () => {
     const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
@@ -1985,8 +1778,9 @@ describe('FitnessApp', () => {
 
     render(<FitnessApp />)
 
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记体重") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
     const bodyDialog = screen.getByRole('dialog', { name: "快速记录面板" })
+    await user.click(within(bodyDialog).getByRole('tab', { name: "体重" }))
     expect(within(bodyDialog).getByRole('button', { name: "更新体重" })).toBeInTheDocument()
     await user.clear(within(bodyDialog).getByLabelText("体重"))
     await user.type(within(bodyDialog).getByLabelText("体重"), '71.2')
@@ -1998,8 +1792,9 @@ describe('FitnessApp', () => {
       weight: 71.2,
     })
 
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: new RegExp("记恢复") }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
     const recoveryDialog = screen.getByRole('dialog', { name: "快速记录面板" })
+    await user.click(within(recoveryDialog).getByRole('tab', { name: "恢复" }))
     expect(within(recoveryDialog).getByRole('button', { name: "更新恢复" })).toBeInTheDocument()
     await user.clear(within(recoveryDialog).getByLabelText("喝水"))
     await user.type(within(recoveryDialog).getByLabelText("喝水"), '2.9')
@@ -2037,8 +1832,9 @@ describe('FitnessApp', () => {
 
     render(<FitnessApp />)
 
-    await user.click(within(getTodayQuickPanel()).getByRole('button', { name: /记体重/ }))
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
     const bodyDialog = screen.getByRole('dialog', { name: '快速记录面板' })
+    await user.click(within(bodyDialog).getByRole('tab', { name: '体重' }))
 
     expect(within(bodyDialog).getByLabelText('胸围')).toHaveValue(98)
     expect(within(bodyDialog).getByLabelText('臀围')).toHaveValue(96)
@@ -2056,24 +1852,6 @@ describe('FitnessApp', () => {
     })
   })
 
-  it('shows recovery score feedback in today', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    const recoveryPanel = screen
-      .getByRole('heading', { level: 3, name: "别只看训练，也看恢复" })
-      .closest('article')
-    expect(recoveryPanel).not.toBeNull()
-
-    expect(within(recoveryPanel as HTMLElement).getByText("恢复分")).toBeInTheDocument()
-    expect(within(recoveryPanel as HTMLElement).getByText("83 分")).toBeInTheDocument()
-    expect(within(recoveryPanel as HTMLElement).getByText("7日均分")).toBeInTheDocument()
-    expect(within(recoveryPanel as HTMLElement).getByText("90 分")).toBeInTheDocument()
-  })
-
   it('shows stage progress and a 28-day consistency heatmap in insights', async () => {
     const user = userEvent.setup()
 
@@ -2087,271 +1865,6 @@ describe('FitnessApp', () => {
     const heatmap = screen.getByRole('list', { name: "28天打卡热力格" })
     expect(within(heatmap).getAllByRole('listitem')).toHaveLength(28)
     expect(screen.getByText("最长连记")).toBeInTheDocument()
-  })
-
-  it('shows stage momentum highlights and weekly missions in today', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    expect(screen.getByText("阶段动力")).toBeInTheDocument()
-    expect(screen.getByText("再减 0.4 kg，就能拿下 71.5 kg 节点")).toBeInTheDocument()
-    expect(screen.getByText("已减 1.1 kg")).toBeInTheDocument()
-    expect(screen.getByText("连记 3 天")).toBeInTheDocument()
-    expect(screen.getByText("本周训练")).toBeInTheDocument()
-    expect(screen.getByText("2 / 4 次")).toBeInTheDocument()
-    expect(screen.getByText("2 / 5 天")).toBeInTheDocument()
-  })
-
-  it('uses compact mobile rails for momentum badges and missions', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const momentumPanel = screen
-      .getByRole('heading', { level: 3, name: '再减 0.4 kg，就能拿下 71.5 kg 节点' })
-      .closest('article')
-
-    expect(momentumPanel).not.toBeNull()
-    expect(momentumPanel).toHaveClass('momentum-panel', 'momentum-panel--compact')
-    expect((momentumPanel as HTMLElement).querySelector('.momentum-badge-grid')).toHaveClass(
-      'momentum-badge-grid',
-      'momentum-badge-grid--rail',
-    )
-    expect((momentumPanel as HTMLElement).querySelector('.mission-list')).toHaveClass(
-      'mission-list',
-      'mission-list--rail',
-    )
-    expect(within(momentumPanel as HTMLElement).queryByText(/再坚持两天记录/)).not.toBeInTheDocument()
-  })
-
-  it('shows unlocked achievements and upcoming milestones in today', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    expect(screen.getByText("阶段成就")).toBeInTheDocument()
-    expect(screen.getByText("已解锁 3 枚")).toBeInTheDocument()
-    expect(screen.getByText("已减重 1 kg")).toBeInTheDocument()
-    expect(screen.getByText("连续记录 7 天")).toBeInTheDocument()
-    expect(screen.getByText("3 / 7 天")).toBeInTheDocument()
-    expect(screen.getByText('1.1 / 3 kg')).toBeInTheDocument()
-  })
-
-  it('uses compact mobile rails for unlocked achievements and next milestones', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const achievementPanel = screen.getByRole('heading', { level: 3, name: '已解锁 3 枚' }).closest('article')
-
-    expect(achievementPanel).not.toBeNull()
-    expect(achievementPanel).toHaveClass('achievement-panel', 'achievement-panel--compact')
-    expect((achievementPanel as HTMLElement).querySelector('.achievement-grid')).toHaveClass(
-      'achievement-grid',
-      'achievement-grid--rail',
-    )
-    expect((achievementPanel as HTMLElement).querySelector('.achievement-next-grid')).toHaveClass(
-      'achievement-next-grid',
-      'achievement-next-grid--rail',
-    )
-    expect(within(achievementPanel as HTMLElement).queryByText(/小节点也算数/)).not.toBeInTheDocument()
-  })
-
-  it('shows one weekly reminder in today and can jump to insights review', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: "今日" }))
-
-    const reminderPanel = screen.getByRole('heading', { level: 3, name: '先把完整记录拉回 3 天' }).closest('article')
-    expect(reminderPanel).not.toBeNull()
-    expect(within(reminderPanel as HTMLElement).getByText('本周提醒')).toBeInTheDocument()
-    expect(
-      within(reminderPanel as HTMLElement).getByText('近 7 天只有 1 天接近完整记录，很多判断还不够稳。'),
-    ).toBeInTheDocument()
-
-    await user.click(within(reminderPanel as HTMLElement).getByRole('button', { name: '去看趋势复盘' }))
-
-    expect(screen.getByRole('heading', { level: 2, name: '本周复盘' })).toBeInTheDocument()
-  })
-
-  it('shows tomorrow plan actions in today and can apply a breakfast template to tomorrow', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const tomorrowPanel = screen
-      .getByRole('heading', { level: 3, name: '明早先把高蛋白早餐带进来' })
-      .closest('article')
-    expect(tomorrowPanel).not.toBeNull()
-    expect(within(tomorrowPanel as HTMLElement).getByText('明日计划')).toBeInTheDocument()
-    expect(within(tomorrowPanel as HTMLElement).getByText('明天补一节力量训练')).toBeInTheDocument()
-    expect(within(tomorrowPanel as HTMLElement).getByText('明晚把恢复记录补上')).toBeInTheDocument()
-
-    await user.click(within(tomorrowPanel as HTMLElement).getByRole('button', { name: '带入早餐' }))
-
-    const tomorrowDate = shiftDateKey(formatLocalDateKey(new Date()), 1)
-
-    expect(
-      useFitnessStore.getState().mealEntries.some(
-        (entry) => entry.dateKey === tomorrowDate && entry.foodName === '希腊酸奶碗',
-      ),
-    ).toBe(true)
-  })
-
-  it('uses a compact mobile rail for the tomorrow plan panel', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const tomorrowPanel = screen
-      .getByRole('heading', { level: 3, name: '明早先把高蛋白早餐带进来' })
-      .closest('article')
-
-    expect(tomorrowPanel).not.toBeNull()
-    expect(tomorrowPanel).toHaveClass('tomorrow-plan-panel', 'tomorrow-plan-panel--compact')
-    expect((tomorrowPanel as HTMLElement).querySelector('.panel-head')).toHaveClass('tomorrow-plan-panel-head')
-    expect((tomorrowPanel as HTMLElement).querySelector('.tomorrow-plan-list')).toHaveClass(
-      'tomorrow-plan-list',
-      'tomorrow-plan-list--rail',
-    )
-    expect(within(tomorrowPanel as HTMLElement).queryByText(/明天按现在的节奏继续记录就够了/)).not.toBeInTheDocument()
-  })
-
-  it('opens tomorrow workout quick entry from the tomorrow plan panel', async () => {
-    const user = userEvent.setup()
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const tomorrowPanel = screen
-      .getByRole('heading', { level: 3, name: '明早先把高蛋白早餐带进来' })
-      .closest('article')
-    expect(tomorrowPanel).not.toBeNull()
-
-    await user.click(within(tomorrowPanel as HTMLElement).getByRole('button', { name: '去记训练' }))
-
-    const dialog = screen.getByRole('dialog', { name: '快速记录面板' })
-    const tomorrowDate = shiftDateKey(formatLocalDateKey(new Date()), 1)
-
-    expect(within(dialog).getByText(formatDateKeyLabel(tomorrowDate))).toBeInTheDocument()
-    expect(within(dialog).getByRole('tab', { name: '训练' })).toHaveAttribute('aria-selected', 'true')
-    expect(within(dialog).getByLabelText('训练标题')).toHaveValue('推训练')
-  })
-
-  it('prioritizes a planned tomorrow workout inside the tomorrow plan panel', async () => {
-    const user = userEvent.setup()
-    const targetDate = formatLocalDateKey(new Date())
-    const tomorrowDate = shiftDateKey(targetDate, 1)
-    const tomorrowWeekday = createDateFromKey(tomorrowDate).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
-
-    act(() => {
-      const snapshot = useFitnessStore.getState()
-      snapshot.replaceSnapshot({
-        weeklyWorkoutPlans: [
-          {
-            id: 'tomorrow-workout-slot',
-            weekday: tomorrowWeekday,
-            templateId: 'workout-template-push',
-          },
-        ],
-      })
-    })
-
-    render(<FitnessApp />)
-
-    await user.click(screen.getByRole('tab', { name: '今日' }))
-
-    const tomorrowPanel = screen
-      .getByRole('heading', { level: 3, name: '明早先把高蛋白早餐带进来' })
-      .closest('article')
-    expect(tomorrowPanel).not.toBeNull()
-    expect(within(tomorrowPanel as HTMLElement).getByText('明天按计划练推训练')).toBeInTheDocument()
-    expect(within(tomorrowPanel as HTMLElement).queryByText('明天补一节力量训练')).not.toBeInTheDocument()
-
-    const workoutButtons = within(tomorrowPanel as HTMLElement).getAllByRole('button', { name: '去记训练' })
-    await user.click(workoutButtons[0] as HTMLButtonElement)
-
-    const dialog = screen.getByRole('dialog', { name: '快速记录面板' })
-
-    expect(within(dialog).getByText(formatDateKeyLabel(tomorrowDate))).toBeInTheDocument()
-    expect(within(dialog).getByRole('tab', { name: '训练' })).toHaveAttribute('aria-selected', 'true')
-    expect(within(dialog).getByLabelText('训练标题')).toHaveValue('推训练')
-  })
-
-  it('shows a today plan panel and applies planned meal and workout templates to today', async () => {
-    const user = userEvent.setup()
-    const targetDate = formatLocalDateKey(new Date())
-    const weekday = createDateFromKey(targetDate).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
-
-    act(() => {
-      const snapshot = useFitnessStore.getState()
-      snapshot.replaceSnapshot({
-        weeklyMealPlans: [
-          {
-            id: 'today-breakfast-slot',
-            weekday,
-            mealType: 'breakfast',
-            templateId: 'meal-template-high-protein-breakfast',
-          },
-        ],
-        weeklyWorkoutPlans: [
-          {
-            id: 'today-workout-slot',
-            weekday,
-            templateId: 'workout-template-push',
-          },
-        ],
-        mealEntries: snapshot.mealEntries.filter(
-          (entry) => !(entry.dateKey === targetDate && entry.mealType === 'breakfast'),
-        ),
-        workoutSessions: snapshot.workoutSessions.filter((entry) => entry.dateKey !== targetDate),
-      })
-    })
-
-    render(<FitnessApp />)
-
-    const todayPlanPanel = screen.getByRole('heading', { level: 3, name: '今天按计划还差 2 项' }).closest('article')
-    expect(todayPlanPanel).not.toBeNull()
-    expect(within(todayPlanPanel as HTMLElement).getByText('今日计划')).toBeInTheDocument()
-    expect(within(todayPlanPanel as HTMLElement).getByText('按计划吃早餐')).toBeInTheDocument()
-    expect(within(todayPlanPanel as HTMLElement).getByText('按计划练推训练')).toBeInTheDocument()
-
-    await user.click(within(todayPlanPanel as HTMLElement).getByRole('button', { name: '带入早餐' }))
-    await user.click(within(todayPlanPanel as HTMLElement).getByRole('button', { name: '带入训练' }))
-
-    expect(
-      useFitnessStore.getState().mealEntries.some(
-        (entry) => entry.dateKey === targetDate && entry.mealType === 'breakfast' && entry.foodName === '希腊酸奶碗',
-      ),
-    ).toBe(true)
-    expect(
-      useFitnessStore.getState().workoutSessions.some(
-        (session) => session.dateKey === targetDate && session.title === '推训练',
-      ),
-    ).toBe(true)
-
-    const completedTodayPlanPanel = (
-      await screen.findByRole('heading', { level: 3, name: '今天排好的都已经落下来了' })
-    ).closest('article')
-    expect(completedTodayPlanPanel).not.toBeNull()
-    expect(within(completedTodayPlanPanel as HTMLElement).queryByRole('button', { name: '带入早餐' })).not.toBeInTheDocument()
-    expect(within(completedTodayPlanPanel as HTMLElement).queryByRole('button', { name: '带入训练' })).not.toBeInTheDocument()
   })
 
   it('updates goal forecast live inside settings', async () => {
