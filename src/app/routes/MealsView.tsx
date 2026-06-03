@@ -51,11 +51,14 @@ import {
 
 interface MealsViewProps {
   targetDate: string
+  advancedOpenToken?: number
 }
 
 const primaryMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner']
 
-export function MealsView({ targetDate }: MealsViewProps) {
+export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: MealsViewProps) {
+  void _advancedOpenToken
+
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
   const {
     profile,

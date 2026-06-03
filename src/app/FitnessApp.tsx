@@ -294,7 +294,7 @@ export function FitnessApp() {
     jumpToTab(tabId)
   }
 
-  let screen = <InsightsView {...{ advancedOpenToken: getAdvancedToken('insights'), targetDate }} />
+  let screen = <InsightsView advancedOpenToken={getAdvancedToken('insights')} targetDate={targetDate} />
 
   if (activeTab === 'today') {
     screen = (
@@ -307,11 +307,11 @@ export function FitnessApp() {
       />
     )
   } else if (activeTab === 'meals') {
-    screen = <MealsView {...{ advancedOpenToken: getAdvancedToken('meals'), targetDate }} />
+    screen = <MealsView advancedOpenToken={getAdvancedToken('meals')} targetDate={targetDate} />
   } else if (activeTab === 'workouts') {
-    screen = <WorkoutsView {...{ advancedOpenToken: getAdvancedToken('workouts'), targetDate }} />
+    screen = <WorkoutsView advancedOpenToken={getAdvancedToken('workouts')} targetDate={targetDate} />
   } else if (activeTab === 'body') {
-    screen = <BodyView {...{ advancedOpenToken: getAdvancedToken('body'), targetDate }} />
+    screen = <BodyView advancedOpenToken={getAdvancedToken('body')} targetDate={targetDate} />
   }
 
   const navigation = (

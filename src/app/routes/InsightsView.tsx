@@ -90,9 +90,12 @@ function getPlanSignalLabel(tone: 'positive' | 'watch') {
 
 interface InsightsViewProps {
   targetDate: string
+  advancedOpenToken?: number
 }
 
-export function InsightsView({ targetDate }: InsightsViewProps) {
+export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: InsightsViewProps) {
+  void _advancedOpenToken
+
   const snapshot = useFitnessStore(
     useShallow((state) => ({
       profile: state.profile,

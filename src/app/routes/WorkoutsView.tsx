@@ -25,9 +25,12 @@ import {
 
 interface WorkoutsViewProps {
   targetDate: string
+  advancedOpenToken?: number
 }
 
-export function WorkoutsView({ targetDate }: WorkoutsViewProps) {
+export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: WorkoutsViewProps) {
+  void _advancedOpenToken
+
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
   const {
     addWorkoutSession,

@@ -17,6 +17,7 @@ import { useFitnessStore } from '../../store/useFitnessStore'
 
 interface BodyViewProps {
   targetDate: string
+  advancedOpenToken?: number
 }
 
 function buildBodyMeasurementItems(entry: {
@@ -48,7 +49,9 @@ function buildBodyMeasurementItems(entry: {
 
 type BodyHistoryRangeDays = 7 | 30
 
-export function BodyView({ targetDate }: BodyViewProps) {
+export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: BodyViewProps) {
+  void _advancedOpenToken
+
   const {
     addBodyEntry,
     addRecoveryEntry,
