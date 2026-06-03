@@ -2,6 +2,7 @@ import { Dumbbell, Scale, Sparkles, UtensilsCrossed } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 
 import type { QuickEntryRequest } from '../QuickEntrySheet'
+import { AiCoachPanel } from '../components/AiCoachPanel'
 import { buildTodayFocus } from '../todayFocus.model'
 import { formatDateKeyLabel, isTodayDateKey } from '../../store/date'
 import { useFitnessStore } from '../../store/useFitnessStore'
@@ -65,6 +66,7 @@ export function TodayView({ onQuickAction, targetDate }: TodayViewProps) {
           {focus.actionLabel}
         </button>
       </article>
+      <AiCoachPanel snapshot={snapshot} targetDate={targetDate} />
     </section>
   )
 }

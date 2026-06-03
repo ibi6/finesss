@@ -1,5 +1,5 @@
-import { Dumbbell, Search, Scale, Sparkles, UtensilsCrossed, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Camera, Dumbbell, Search, Scale, Sparkles, UtensilsCrossed, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -23,6 +23,9 @@ import type {
   WorkoutTemplate,
 } from '../store/types'
 import { useFitnessStore } from '../store/useFitnessStore'
+import { buildPhotoEstimateAnalysis, type PhotoEstimateCandidate } from './components/photoEstimate'
+import { foodMatchesQuery, normalizeFoodSearchText } from './foodSearch'
+import { buildApiUrl } from './services/api'
 import { searchOpenFoodFacts, type OnlineFoodResult } from './services/openFoodFacts'
 
 export type QuickEntryMode = 'meal' | 'workout' | 'body' | 'recovery'
@@ -40,6 +43,23 @@ interface QuickEntrySheetProps {
   targetDate: string
   onClose: () => void
   onOpenWorkspace?: (mode: QuickEntryMode) => void
+}
+
+interface AiFoodVisionEstimate {
+  foodName: string
+  servingLabel: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  sourceFoodId: string | null
+}
+
+interface AiFoodVisionResponse {
+  provider: 'fallback' | 'openai' | string
+  estimate: AiFoodVisionEstimate
+  confidence: number
+  note: string
 }
 
 const modeMeta: Record<
@@ -127,6 +147,24 @@ function createRecoveryForm(entry: RecoveryEntry | null, preset?: RecoveryPreset
     sleepHours: String(entry?.sleepHours ?? 7.4),
     energy: String(entry?.energy ?? 4),
   }
+}
+
+function multiplyMacro(value: number, servings: number) {
+  return Number((value * servings).toFixed(0))
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      resolve(typeof reader.result === 'string' ? reader.result : '')
+    }
+    reader.onerror = () => {
+      reject(new Error('Failed to read food photo.'))
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function findRelevantEntry<T extends { loggedAt: string; dateKey?: string }>(
@@ -224,6 +262,12 @@ export function QuickEntrySheet({
   const [onlineLookupStatus, setOnlineLookupStatus] = useState('')
   const [selectedOnlineFood, setSelectedOnlineFood] = useState<OnlineFoodResult | null>(null)
   const [saveOnlineFood, setSaveOnlineFood] = useState(false)
+  const [quickPhotoName, setQuickPhotoName] = useState('')
+  const [quickPhotoDataUrl, setQuickPhotoDataUrl] = useState('')
+  const [quickPhotoPreviewUrl, setQuickPhotoPreviewUrl] = useState<string | null>(null)
+  const [selectedPhotoFoodId, setSelectedPhotoFoodId] = useState<string | null>(null)
+  const [aiVisionStatus, setAiVisionStatus] = useState('')
+  const [isAiVisionLoading, setIsAiVisionLoading] = useState(false)
   const [workoutForm, setWorkoutForm] = useState(() =>
     createWorkoutForm(requestedWorkoutTemplate ?? latestWorkoutTemplate),
   )
@@ -234,19 +278,14 @@ export function QuickEntrySheet({
     createRecoveryForm(relevantRecoveryEntry, requestedRecoveryPreset),
   )
   const localFoodMatches = useMemo(() => {
-    const normalizedQuery = foodSearchQuery.trim().toLowerCase()
+    const normalizedQuery = normalizeFoodSearchText(foodSearchQuery)
 
     if (!normalizedQuery) {
       return favoriteFoods
     }
 
     return foods
-      .filter((food) =>
-        [food.name, food.servingLabel, `${food.calories}`, `${food.protein}`]
-          .join(' ')
-          .toLowerCase()
-          .includes(normalizedQuery),
-      )
+      .filter((food) => foodMatchesQuery(food, normalizedQuery))
       .sort((left, right) => {
         if (left.isFavorite !== right.isFavorite) {
           return left.isFavorite ? -1 : 1
@@ -256,6 +295,32 @@ export function QuickEntrySheet({
       })
       .slice(0, 5)
   }, [favoriteFoods, foodSearchQuery, foods])
+  const quickPhotoAnalysis = useMemo(
+    () =>
+      buildPhotoEstimateAnalysis({
+        foods,
+        query: foodSearchQuery,
+        fileName: quickPhotoName,
+        portionHint: 'regular',
+        sceneHint: 'auto',
+        mealTypeHint: mealForm.mealType,
+      }),
+    [foodSearchQuery, foods, mealForm.mealType, quickPhotoName],
+  )
+  const quickPhotoCandidates = quickPhotoName ? quickPhotoAnalysis.candidates.slice(0, 3) : []
+  const quickPhotoActiveCandidate =
+    quickPhotoCandidates.find((candidate) => candidate.food.id === selectedPhotoFoodId) ??
+    quickPhotoCandidates[0] ??
+    null
+
+  useEffect(
+    () => () => {
+      if (quickPhotoPreviewUrl) {
+        URL.revokeObjectURL(quickPhotoPreviewUrl)
+      }
+    },
+    [quickPhotoPreviewUrl],
+  )
 
   if (!request) {
     return null
@@ -307,6 +372,117 @@ export function QuickEntrySheet({
       fat: String(food.fat),
       sourceFoodId: null,
     }))
+  }
+
+  function applyPhotoCandidate(candidate: PhotoEstimateCandidate) {
+    const servings = candidate.suggestedServings
+
+    setSelectedOnlineFood(null)
+    setSaveOnlineFood(false)
+    setSelectedPhotoFoodId(candidate.food.id)
+    setFoodSearchQuery(candidate.food.name)
+    setMealForm((current) => ({
+      ...current,
+      foodName: candidate.food.name,
+      servingLabel:
+        servings === 1 ? candidate.food.servingLabel : `${servings} x ${candidate.food.servingLabel}`,
+      calories: String(multiplyMacro(candidate.food.calories, servings)),
+      protein: String(multiplyMacro(candidate.food.protein, servings)),
+      carbs: String(multiplyMacro(candidate.food.carbs, servings)),
+      fat: String(multiplyMacro(candidate.food.fat, servings)),
+      sourceFoodId: candidate.source === 'library' ? candidate.food.id : null,
+    }))
+  }
+
+  function applyAiFoodEstimate(estimate: AiFoodVisionEstimate) {
+    setSelectedOnlineFood(null)
+    setSaveOnlineFood(false)
+    setSelectedPhotoFoodId(estimate.sourceFoodId)
+    setFoodSearchQuery(estimate.foodName)
+    setMealForm((current) => ({
+      ...current,
+      foodName: estimate.foodName,
+      servingLabel: estimate.servingLabel,
+      calories: String(Math.round(estimate.calories)),
+      protein: String(Math.round(estimate.protein)),
+      carbs: String(Math.round(estimate.carbs)),
+      fat: String(Math.round(estimate.fat)),
+      sourceFoodId: estimate.sourceFoodId,
+    }))
+  }
+
+  async function handleQuickPhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      return
+    }
+
+    if (quickPhotoPreviewUrl) {
+      URL.revokeObjectURL(quickPhotoPreviewUrl)
+    }
+
+    setQuickPhotoPreviewUrl(URL.createObjectURL(file))
+    setQuickPhotoName(file.name.replace(/\.[^.]+$/, ''))
+    setQuickPhotoDataUrl('')
+    setSelectedPhotoFoodId(null)
+    setAiVisionStatus('')
+
+    try {
+      setQuickPhotoDataUrl(await readFileAsDataUrl(file))
+    } catch {
+      setAiVisionStatus('照片读取失败，可以先用本地候选或手动填写。')
+    }
+  }
+
+  async function identifyQuickPhotoWithAi() {
+    if (!quickPhotoName) {
+      return
+    }
+
+    setIsAiVisionLoading(true)
+    setAiVisionStatus('AI 识别中...')
+
+    try {
+      const response = await fetch(buildApiUrl('/api/ai/food-vision'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          photoName: quickPhotoName,
+          query: foodSearchQuery,
+          imageDataUrl: quickPhotoDataUrl,
+          candidates: quickPhotoCandidates.map((candidate) => ({
+            name: candidate.food.name,
+            servingLabel:
+              candidate.suggestedServings === 1
+                ? candidate.food.servingLabel
+                : `${candidate.suggestedServings} x ${candidate.food.servingLabel}`,
+            calories: multiplyMacro(candidate.food.calories, candidate.suggestedServings),
+            protein: multiplyMacro(candidate.food.protein, candidate.suggestedServings),
+            carbs: multiplyMacro(candidate.food.carbs, candidate.suggestedServings),
+            fat: multiplyMacro(candidate.food.fat, candidate.suggestedServings),
+            sourceFoodId: candidate.source === 'library' ? candidate.food.id : null,
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('AI food vision request failed')
+      }
+
+      const result = (await response.json()) as AiFoodVisionResponse
+      applyAiFoodEstimate(result.estimate)
+      setAiVisionStatus(result.note || `AI 已带入，可信度约 ${Math.round(result.confidence)}%`)
+    } catch {
+      if (quickPhotoActiveCandidate) {
+        applyPhotoCandidate(quickPhotoActiveCandidate)
+      }
+      setAiVisionStatus('AI 识别暂时不可用，已保留本地照片候选。')
+    } finally {
+      setIsAiVisionLoading(false)
+    }
   }
 
   async function lookupFoodOnline() {
@@ -565,6 +741,75 @@ export function QuickEntrySheet({
                   ))}
                 </div>
               ) : null}
+
+              <details className="quick-photo-estimate-card">
+                <summary>
+                  <Camera size={16} />
+                  <span>拍照估算热量</span>
+                </summary>
+                <div className="quick-photo-estimate-body">
+                  <label className="quick-photo-upload-field">
+                    <input
+                      accept="image/*"
+                      aria-label="拍照或上传食物照片"
+                      capture="environment"
+                      className="visually-hidden-input"
+                      onChange={handleQuickPhotoChange}
+                      type="file"
+                    />
+                    <span>{quickPhotoName ? '重新拍一张' : '拍照或上传'}</span>
+                  </label>
+                  <p className="inline-note">
+                    {quickPhotoName
+                      ? `当前照片：${quickPhotoName}`
+                      : '拍完后会按照片文件名、搜索词和餐次给一版热量候选。'}
+                  </p>
+
+                  {quickPhotoName ? (
+                    <div className="quick-photo-ai-row">
+                      <button
+                        className="primary-button quick-photo-ai-button"
+                        disabled={isAiVisionLoading}
+                        onClick={identifyQuickPhotoWithAi}
+                        type="button"
+                      >
+                        {isAiVisionLoading ? '识别中...' : 'AI 识别照片'}
+                      </button>
+                      {aiVisionStatus ? <span className="inline-note">{aiVisionStatus}</span> : null}
+                    </div>
+                  ) : null}
+
+                  {quickPhotoName ? (
+                    quickPhotoCandidates.length > 0 ? (
+                      <div className="quick-photo-candidate-grid">
+                        {quickPhotoCandidates.map((candidate) => (
+                          <button
+                            aria-label={`按照片带入 ${candidate.food.name}`}
+                            aria-pressed={quickPhotoActiveCandidate?.food.id === candidate.food.id}
+                            className={`list-item list-item--dense quick-photo-candidate${
+                              quickPhotoActiveCandidate?.food.id === candidate.food.id ? ' is-active' : ''
+                            }`}
+                            key={candidate.food.id}
+                            onClick={() => applyPhotoCandidate(candidate)}
+                            type="button"
+                          >
+                            <div>
+                              <strong>{candidate.food.name}</strong>
+                              <p>{candidate.reasons.slice(0, 2).join(' · ')}</p>
+                            </div>
+                            <div className="numeric-meta">
+                              <strong>{multiplyMacro(candidate.food.calories, candidate.suggestedServings)} kcal</strong>
+                              <span>{candidate.confidence}%</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="inline-note">还没估出候选，先在上面补一个关键词，比如“汉堡”或“奶茶”。</p>
+                    )
+                  ) : null}
+                </div>
+              </details>
             </div>
 
             {favoriteFoods.length > 0 ? (

@@ -25,6 +25,7 @@ import type {
   WeekdayIndex,
 } from '../../store/types'
 import { useFitnessStore } from '../../store/useFitnessStore'
+import { foodMatchesQuery, normalizeFoodSearchText } from '../foodSearch'
 import { MealWorkspaceTabs } from './MealWorkspaceTabs'
 import {
   buildTemplateName,
@@ -55,6 +56,7 @@ interface MealsViewProps {
 }
 
 const primaryMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner']
+const visibleFoodSearchLimit = 12
 
 export function MealsView({ advancedOpenToken = 0, targetDate }: MealsViewProps) {
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
@@ -250,7 +252,7 @@ export function MealsView({ advancedOpenToken = 0, targetDate }: MealsViewProps)
         ? `近 ${photoHistoryRangeDays} 天共 ${photoEstimateHistory.totalInRange} 条识别记录`
         : `近 ${photoHistoryRangeDays} 天显示 ${photoEstimateHistory.filteredCount} / ${photoEstimateHistory.totalInRange} 条`;
   const filteredFoods = useMemo(() => {
-    const normalizedQuery = libraryQuery.trim().toLowerCase()
+    const normalizedQuery = normalizeFoodSearchText(libraryQuery)
     const sortedFoods = [...foods].sort((left, right) => {
       if (left.isFavorite !== right.isFavorite) {
         return left.isFavorite ? -1 : 1
@@ -260,21 +262,12 @@ export function MealsView({ advancedOpenToken = 0, targetDate }: MealsViewProps)
     })
 
     if (!normalizedQuery) {
-      return sortedFoods
+      return sortedFoods.slice(0, visibleFoodSearchLimit)
     }
 
-    return sortedFoods.filter((food) => {
-      const haystack = [
-        food.name,
-        food.servingLabel,
-        `${food.calories}`,
-        `${food.protein}`,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(normalizedQuery)
-    })
+    return sortedFoods
+      .filter((food) => foodMatchesQuery(food, normalizedQuery))
+      .slice(0, visibleFoodSearchLimit)
   }, [foods, libraryQuery])
   const sortedMealTemplates = useMemo(
     () =>

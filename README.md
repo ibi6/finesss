@@ -60,6 +60,32 @@ pnpm dev --host 127.0.0.1 --port 4173
 http://127.0.0.1:4173/
 ```
 
+## AI 后端代理
+
+AI 教练和饮食照片识别只请求 `server/` 代理，前端和 APK 不保存 API key。
+
+电脑本地预览可以继续使用相对 `/api`；如果要让 APK 请求公网后端，构建前把 `VITE_API_BASE_URL` 指到已部署的 server 地址。
+
+```powershell
+Copy-Item .env.example .env
+# 在 .env 里填写 OPENAI_API_KEY；APK 构建时再填写 VITE_API_BASE_URL
+pnpm build
+pnpm start
+```
+
+可选配置：
+
+```text
+VITE_API_BASE_URL=https://api.example.com
+OPENAI_API_KEY=你的服务端 key
+OPENAI_MODEL=gpt-4o-mini
+SERVER_CORS_ORIGINS=https://app.example.com
+```
+
+未配置 `OPENAI_API_KEY` 时，`/api/ai/coach` 和 `/api/ai/food-vision` 会返回本地兜底建议，App 仍可正常记录。
+
+`VITE_API_BASE_URL` 会被打进前端包里，只能放后端公开地址，不能放任何密钥；`OPENAI_API_KEY` 只放 server 环境变量。server 默认允许 `capacitor://localhost`、`ionic://localhost` 和本地预览 origin，部署到公网时可用 `SERVER_CORS_ORIGINS` 增加允许来源。
+
 ## 常用命令
 
 ```bash

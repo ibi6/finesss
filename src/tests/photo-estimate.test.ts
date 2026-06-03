@@ -136,7 +136,7 @@ describe('photo estimate analysis', () => {
     expect(analysis.candidates[0]?.reasons.some((reason) => reason.includes('训练后'))).toBe(true)
   })
 
-  it('adds a late-night reason for burger combo file names', () => {
+  it('adds a late-night reason for burger file names and prefers local foods', () => {
     const foods = createSeedSnapshot().foods
     const analysis = buildPhotoEstimateAnalysis({
       foods,
@@ -146,7 +146,8 @@ describe('photo estimate analysis', () => {
       sceneHint: 'auto',
     })
 
-    expect(analysis.candidates[0]?.food.name).toBe('炸鸡汉堡套餐')
+    expect(analysis.candidates[0]?.food.name).toBe('麦辣鸡腿堡')
+    expect(analysis.candidates[0]?.source).toBe('library')
     expect(analysis.candidates[0]?.reasons.some((reason) => reason.includes('夜宵'))).toBe(true)
   })
 

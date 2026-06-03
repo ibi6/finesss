@@ -35,13 +35,13 @@ describe('first-run onboarding', () => {
     render(<FitnessApp />)
 
     expect(screen.getByRole('dialog', { name: '燃刻首次设置' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: '先把燃刻调成你的节奏' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '先选一个目标' })).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('当前体重'))
     await user.type(screen.getByLabelText('当前体重'), '80')
     await user.clear(screen.getByLabelText('目标体重'))
     await user.type(screen.getByLabelText('目标体重'), '72')
-    await user.click(screen.getByRole('button', { name: '空白开始' }))
+    await user.click(screen.getByRole('button', { name: '开始记录' }))
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: '燃刻首次设置' })).not.toBeInTheDocument()
@@ -53,23 +53,13 @@ describe('first-run onboarding', () => {
     expect(useFitnessStore.getState().mealEntries).toHaveLength(0)
   })
 
-  it('can load the demo records from onboarding when requested', async () => {
-    const user = userEvent.setup()
-    const [{ FitnessApp }, { useFitnessStore }] = await Promise.all([
-      import('../app/FitnessApp'),
-      import('../store/useFitnessStore'),
-    ])
+  it('does not offer demo records from onboarding', async () => {
+    const { FitnessApp } = await import('../app/FitnessApp')
 
     render(<FitnessApp />)
 
-    await user.click(screen.getByRole('button', { name: '载入示例' }))
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: '燃刻首次设置' })).not.toBeInTheDocument()
-    })
-
-    expect(window.localStorage.getItem('peakfuel:onboardingSeen')).toBe('true')
-    expect(useFitnessStore.getState().mealEntries.length).toBeGreaterThan(0)
-    expect(useFitnessStore.getState().workoutSessions.length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: '看看示例' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '载入示例' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '开始记录' })).toBeInTheDocument()
   })
 })

@@ -5,6 +5,10 @@
 node_modules/
 dist/
 coverage/
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # Build outputs
 android/.gradle/

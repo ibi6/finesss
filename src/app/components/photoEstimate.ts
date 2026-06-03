@@ -42,12 +42,16 @@ const sceneKeywordMap: Record<EstimateScene, string[]> = {
     '寿司',
     '面',
     '汉堡',
+    '麦当劳',
+    '麦辣',
+    '鸡腿堡',
     'meal',
     'rice',
     'bowl',
     'sushi',
     'noodle',
     'burger',
+    'hamburger',
   ],
   drink: [
     '奶茶',
@@ -209,6 +213,12 @@ const keywordAliasMap: Record<string, string[]> = {
   麻辣烫: ['malatang', 'spicy hotpot'],
   牛肉面: ['beef noodle', 'ramen'],
   汉堡: ['burger'],
+  麦辣鸡腿堡: ['麦辣', '麦当劳', '鸡腿堡', 'burger', 'hamburger', 'spicy chicken burger'],
+  巨无霸: ['麦当劳', 'big mac', 'burger', 'hamburger'],
+  中薯条: ['麦当劳', '薯条', 'fries', 'french fries'],
+  麦乐鸡: ['麦当劳', '鸡块', 'nuggets', 'chicken nuggets'],
+  肉包子: ['包子', 'baozi', 'bun'],
+  生椰拿铁: ['瑞幸', '拿铁', 'luckin', 'coconut latte'],
 }
 
 function textIncludesAny(text: string, candidates: string[]) {

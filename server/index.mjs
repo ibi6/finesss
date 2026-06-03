@@ -7,12 +7,15 @@ import { appendLogEntry, getLogById, listLogs } from './lib/logs.mjs'
 import { DIST_DIR } from './lib/paths.mjs'
 import { getBranchState, getHermesState, getOverviewState } from './lib/overview.mjs'
 import { runAction } from './lib/commands.mjs'
+import { createCoachAdvice, createFoodVisionEstimate, getAiStatus } from './lib/ai.mjs'
+import { applyCors } from './lib/cors.mjs'
 
 const app = express()
 const host = process.env.CONSOLE_HOST ?? '127.0.0.1'
 const port = Number(process.env.CONSOLE_PORT ?? '4318')
 
-app.use(express.json({ limit: '1mb' }))
+app.use(applyCors)
+app.use(express.json({ limit: '6mb' }))
 
 function asyncRoute(handler) {
   return async (req, res) => {
@@ -122,6 +125,18 @@ app.get('/api/logs/:id', asyncRoute(async (req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
 })
+
+app.get('/api/ai/status', (_req, res) => {
+  res.json(getAiStatus())
+})
+
+app.post('/api/ai/coach', asyncRoute(async (req, res) => {
+  res.json(await createCoachAdvice(req.body ?? {}))
+}))
+
+app.post('/api/ai/food-vision', asyncRoute(async (req, res) => {
+  res.json(await createFoodVisionEstimate(req.body ?? {}))
+}))
 
 app.use(express.static(DIST_DIR))
 

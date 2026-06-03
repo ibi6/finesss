@@ -30,12 +30,17 @@ const goalModeLabels: Record<GoalMode, string> = {
   gain: '增肌',
 }
 
+const goalModeHints: Record<GoalMode, string> = {
+  cut: '今天先把热量控住，蛋白吃够。',
+  maintain: '保持节奏，记录饮食、训练和身体变化。',
+  gain: '多吃一点，训练做扎实。',
+}
+
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
-  const { profile, resetToClean, resetToSeed, updateProfile } = useFitnessStore(
+  const { profile, resetToClean, updateProfile } = useFitnessStore(
     useShallow((state) => ({
       profile: state.profile,
       resetToClean: state.resetToClean,
-      resetToSeed: state.resetToSeed,
       updateProfile: state.updateProfile,
     })),
   )
@@ -59,13 +64,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     }))
   }
 
-  function completeWith(mode: 'clean' | 'demo') {
-    if (mode === 'demo') {
-      resetToSeed()
-    } else {
-      resetToClean()
-    }
-
+  function startClean() {
+    resetToClean()
     updateProfile(previewProfile)
     onComplete()
   }
@@ -73,16 +73,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   return (
     <div className="onboarding-backdrop">
       <section aria-label="燃刻首次设置" aria-modal="true" className="onboarding-screen" role="dialog">
-        <div className="onboarding-mark" aria-hidden="true">
-          <Flame size={24} />
-        </div>
-        <div className="onboarding-copy">
-          <p className="section-kicker">燃刻</p>
-          <h1>先把燃刻调成你的节奏</h1>
-          <p>设置几个核心目标，之后每天只管记录饮食、训练和身体状态。</p>
+        <div className="onboarding-hero">
+          <div className="onboarding-mark" aria-hidden="true">
+            <Flame size={24} />
+          </div>
+          <div className="onboarding-copy">
+            <p className="section-kicker">燃刻</p>
+            <h1>先选一个目标</h1>
+            <p>每天打开后，只看今天该记什么和下一步动作。</p>
+          </div>
         </div>
 
-        <div className="settings-goal-mode-block">
+        <div className="settings-goal-mode-block onboarding-goal-block">
           <div className="field-label">目标模式</div>
           <div className="segmented-control segmented-control--3">
             {(['cut', 'maintain', 'gain'] as GoalMode[]).map((mode) => (
@@ -97,9 +99,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               </button>
             ))}
           </div>
+          <p className="onboarding-goal-hint">{goalModeHints[form.goalMode]}</p>
         </div>
 
-        <div className="form-grid onboarding-form-grid">
+        <div className="form-grid onboarding-form-grid onboarding-primary-grid">
           <label className="field">
             <span>当前体重</span>
             <input
@@ -118,32 +121,35 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               value={form.targetWeight}
             />
           </label>
-          <label className="field">
-            <span>每日热量</span>
-            <input
-              inputMode="numeric"
-              onChange={(event) => updateField('dailyCalories', event.target.value)}
-              type="number"
-              value={form.dailyCalories}
-            />
-          </label>
-          <label className="field">
-            <span>每日蛋白</span>
-            <input
-              inputMode="numeric"
-              onChange={(event) => updateField('dailyProtein', event.target.value)}
-              type="number"
-              value={form.dailyProtein}
-            />
-          </label>
         </div>
 
+        <details className="onboarding-optional">
+          <summary>热量和蛋白</summary>
+          <div className="form-grid onboarding-form-grid">
+            <label className="field">
+              <span>每日热量</span>
+              <input
+                inputMode="numeric"
+                onChange={(event) => updateField('dailyCalories', event.target.value)}
+                type="number"
+                value={form.dailyCalories}
+              />
+            </label>
+            <label className="field">
+              <span>每日蛋白</span>
+              <input
+                inputMode="numeric"
+                onChange={(event) => updateField('dailyProtein', event.target.value)}
+                type="number"
+                value={form.dailyProtein}
+              />
+            </label>
+          </div>
+        </details>
+
         <div className="onboarding-actions">
-          <button className="primary-button" onClick={() => completeWith('clean')} type="button">
-            空白开始
-          </button>
-          <button className="secondary-button" onClick={() => completeWith('demo')} type="button">
-            载入示例
+          <button className="primary-button" onClick={startClean} type="button">
+            开始记录
           </button>
         </div>
       </section>
