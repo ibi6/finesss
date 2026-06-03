@@ -11,10 +11,32 @@ describe('BodyView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
-  it('shows body stage comparison and a 7-day weight trend chart', () => {
+  async function openBodyAdvanced(user: ReturnType<typeof userEvent.setup>) {
+    if (screen.queryByText('阶段对比')) {
+      return
+    }
+
+    await user.click(screen.getByRole('button', { name: '查看全部身体记录' }))
+  }
+
+  it('defaults to today body status and keeps trend details tucked away', async () => {
+    const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
 
     render(<BodyView targetDate={targetDate} />)
+
+    expect(screen.getByRole('heading', { level: 2, name: '今天身体状态' })).toBeInTheDocument()
+    expect(screen.getAllByText('体重').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('恢复').length).toBeGreaterThan(0)
+    expect(screen.getByText('睡眠')).toBeInTheDocument()
+    expect(screen.getByText('步数')).toBeInTheDocument()
+    expect(screen.getByText('喝水')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '最近身体记录' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看全部身体记录' })).toBeInTheDocument()
+    expect(screen.queryByText('阶段对比')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('搜索身体历史')).not.toBeInTheDocument()
+
+    await openBodyAdvanced(user)
 
     expect(screen.getByText('阶段对比')).toBeInTheDocument()
     expect(screen.getByText('起点体重')).toBeInTheDocument()
@@ -32,12 +54,11 @@ describe('BodyView', () => {
     const targetDate = shiftDateKey(formatLocalDateKey(new Date()), -11)
 
     render(<BodyView targetDate={targetDate} />)
+    await openBodyAdvanced(user)
 
     const selectedBodyPanel = screen.getByText('所选日期体重').closest('article')
-    const recentPanel = screen.getByText('最近身体记录').closest('article')
 
     expect(selectedBodyPanel).not.toBeNull()
-    expect(recentPanel).not.toBeNull()
 
     await user.clear(screen.getByLabelText('体重'))
     await user.type(screen.getByLabelText('体重'), '70.4')
@@ -79,13 +100,13 @@ describe('BodyView', () => {
       chest: 97,
       hips: 96,
     })
-    const editedRecentEntry = within(recentPanel!).getByText('70.4 kg').closest('.list-item')
+    const editedSelectedEntry = within(selectedBodyPanel!).getByText('70.4 kg').closest('.list-item')
 
-    expect(editedRecentEntry).not.toBeNull()
+    expect(editedSelectedEntry).not.toBeNull()
     expect(within(selectedBodyPanel!).getByText('胸围 97 cm')).toBeInTheDocument()
     expect(within(selectedBodyPanel!).getByText('臀围 96 cm')).toBeInTheDocument()
-    expect(editedRecentEntry).toHaveTextContent('胸围 97 cm')
-    expect(editedRecentEntry).toHaveTextContent('臀围 96 cm')
+    expect(editedSelectedEntry).toHaveTextContent('胸围 97 cm')
+    expect(editedSelectedEntry).toHaveTextContent('臀围 96 cm')
   })
 
   it('can create, edit, and confirm-delete body and recovery records for a selected day', async () => {
@@ -94,6 +115,7 @@ describe('BodyView', () => {
     const initialRecoveryCount = useFitnessStore.getState().recoveryEntries.length
 
     render(<BodyView targetDate={targetDate} />)
+    await openBodyAdvanced(user)
 
     await user.clear(screen.getByLabelText('体重'))
     await user.type(screen.getByLabelText('体重'), '70.4')
@@ -226,11 +248,11 @@ describe('BodyView', () => {
     })
 
     render(<BodyView targetDate={targetDate} />)
+    await openBodyAdvanced(user)
 
-    expect(screen.getByText('最近身体记录')).toBeInTheDocument()
     expect(screen.queryByLabelText('搜索身体历史')).not.toBeInTheDocument()
 
-    const historyPanel = screen.getByText('最近身体记录').closest('article')
+    const historyPanel = screen.getAllByText('最近身体记录').at(-1)?.closest('article')
 
     expect(historyPanel).not.toBeNull()
     await user.click(within(historyPanel!).getByText('查看全部身体记录'))

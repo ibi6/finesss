@@ -1,5 +1,5 @@
 ﻿import { Plus, Search, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { ConfirmSheet } from '../components/ConfirmSheet'
@@ -28,9 +28,7 @@ interface WorkoutsViewProps {
   advancedOpenToken?: number
 }
 
-export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: WorkoutsViewProps) {
-  void _advancedOpenToken
-
+export function WorkoutsView({ advancedOpenToken = 0, targetDate }: WorkoutsViewProps) {
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
   const {
     addWorkoutSession,
@@ -91,6 +89,7 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyKindFilter, setHistoryKindFilter] = useState<WorkoutHistoryKindFilter>('all')
   const [historyRangeDays, setHistoryRangeDays] = useState<7 | 30>(7)
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false)
   const [showHistoryControls, setShowHistoryControls] = useState(false)
   const selectedSessions = useMemo(
     () =>
@@ -108,6 +107,10 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
       exerciseCount: selectedSessions.reduce((sum, session) => sum + session.exercises.length, 0),
     }),
     [selectedSessions],
+  )
+  const recentWorkoutSessions = useMemo(
+    () => [...workoutSessions].sort((left, right) => right.startedAt.localeCompare(left.startedAt)).slice(0, 3),
+    [workoutSessions],
   )
   const workoutRhythm = useMemo(
     () => buildWorkoutRhythmSummary({ workoutSessions }, targetDate),
@@ -182,6 +185,12 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
       ? true
       : window.matchMedia('(min-width: 421px)').matches
 
+  useEffect(() => {
+    if (advancedOpenToken > 0) {
+      setShowAdvancedTools(true)
+    }
+  }, [advancedOpenToken])
+
   function resetForm(nextKind: WorkoutKind = 'strength') {
     setEditingWorkout(null)
     setKind(nextKind)
@@ -193,6 +202,7 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
   }
 
   function loadTemplate(template: WorkoutTemplate) {
+    setShowAdvancedTools(true)
     setEditingWorkout(null)
     setKind(template.kind)
     setTitle(template.name)
@@ -208,6 +218,7 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
       return
     }
 
+    setShowAdvancedTools(true)
     setEditingWorkout({
       id: session.id,
       startedAt: session.startedAt,
@@ -277,6 +288,7 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
   }
 
   function startCaptureWorkoutTemplate(session: WorkoutSession) {
+    setShowAdvancedTools(true)
     setTemplateDraft({
       id: null,
       name: session.title,
@@ -294,6 +306,7 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
       return
     }
 
+    setShowAdvancedTools(true)
     setTemplateDraft({
       id: template.id,
       name: template.name,
@@ -456,6 +469,8 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
 
         <WorkoutSummaryCards isTodayView={isTodayView} summary={selectedSummary} />
 
+        {showAdvancedTools ? (
+          <>
         <div className="meal-inline-section workout-rhythm-panel workout-rhythm-panel--compact">
           <div className="meal-inline-head workout-rhythm-head--compact">
             <div>
@@ -1002,8 +1017,48 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
             </button>
           </div>
         </form>
+          </>
+        ) : null}
       </article>
 
+      <article className="feature-panel frontstage-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-kicker">最近</p>
+            <h3>最近训练</h3>
+          </div>
+          <button
+            className="secondary-button"
+            onClick={() => setShowAdvancedTools((current) => !current)}
+            type="button"
+          >
+            {showAdvancedTools ? '收起全部' : '查看全部训练记录'}
+          </button>
+        </div>
+        <div className="stack-list">
+          {recentWorkoutSessions.length > 0 ? (
+            recentWorkoutSessions.map((session) => (
+              <div className="list-item list-item--dense" key={session.id}>
+                <div>
+                  <strong>{session.title}</strong>
+                  <p>
+                    {session.kind === 'strength' ? '力量' : '有氧'} · {session.durationMinutes} 分钟
+                  </p>
+                </div>
+                <div className="numeric-meta">
+                  <strong>{session.estimatedCalories} kcal</strong>
+                  <span>{formatShortDateKey(resolveDateKey(session.dateKey, session.startedAt))}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-note">还没有训练记录，先记一次训练。</div>
+          )}
+        </div>
+      </article>
+
+      {showAdvancedTools ? (
+        <>
       <article className="feature-panel feature-panel--wide">
         <div className="panel-head">
           <div>
@@ -1203,6 +1258,8 @@ export function WorkoutsView({ advancedOpenToken: _advancedOpenToken = 0, target
           )}
         </div>
       </article>
+        </>
+      ) : null}
 
       <ConfirmSheet
         confirmLabel="确认删除"

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Search } from 'lucide-react'
 
@@ -49,9 +49,7 @@ function buildBodyMeasurementItems(entry: {
 
 type BodyHistoryRangeDays = 7 | 30
 
-export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: BodyViewProps) {
-  void _advancedOpenToken
-
+export function BodyView({ advancedOpenToken = 0, targetDate }: BodyViewProps) {
   const {
     addBodyEntry,
     addRecoveryEntry,
@@ -107,6 +105,7 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyKindFilter, setHistoryKindFilter] = useState<'all' | 'body' | 'recovery'>('all')
   const [historyRangeDays, setHistoryRangeDays] = useState<BodyHistoryRangeDays>(7)
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false)
   const [showHistoryControls, setShowHistoryControls] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{
     kind: 'body' | 'recovery'
@@ -158,6 +157,30 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
         .sort((left, right) => right.loggedAt.localeCompare(left.loggedAt)),
     [recoveryEntries, targetDate],
   )
+  const recentBodyRecords = useMemo(
+    () =>
+      [
+        ...bodyEntries.map((entry) => ({
+          id: `body-${entry.id}`,
+          kind: '体重',
+          title: `${entry.weight.toFixed(1)} kg`,
+          detail: buildBodyMeasurementItems(entry).join(' · ') || '体重记录',
+          loggedAt: entry.loggedAt,
+          dateKey: resolveDateKey(entry.dateKey, entry.loggedAt),
+        })),
+        ...recoveryEntries.map((entry) => ({
+          id: `recovery-${entry.id}`,
+          kind: '恢复',
+          title: `${entry.sleepHours} 小时睡眠`,
+          detail: `${entry.steps} 步 · ${entry.waterLiters} L 喝水`,
+          loggedAt: entry.loggedAt,
+          dateKey: resolveDateKey(entry.dateKey, entry.loggedAt),
+        })),
+      ]
+        .sort((left, right) => right.loggedAt.localeCompare(left.loggedAt))
+        .slice(0, 3),
+    [bodyEntries, recoveryEntries],
+  )
   const weightTrend = buildWeightTrend(bodySnapshot, targetDate)
   const goalProgress = buildGoalProgressSummary(bodySnapshot, targetDate)
   const bodyHistory = useMemo(
@@ -182,8 +205,8 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
       : bodyHistory.filteredCount === bodyHistory.totalInRange
         ? `近 ${historyRangeDays} 天共 ${bodyHistory.totalInRange} 条记录`
         : `近 ${historyRangeDays} 天显示 ${bodyHistory.filteredCount} / ${bodyHistory.totalInRange} 条`
-  const latestBodyEntry = [...bodyEntries].sort((left, right) => right.loggedAt.localeCompare(left.loggedAt))[0] ?? null
   const latestRecoveryEntry = [...recoveryEntries].sort((left, right) => right.loggedAt.localeCompare(left.loggedAt))[0] ?? null
+  const selectedBodyLatest = selectedBodyEntries[0] ?? null
   const selectedRecoveryLatest = selectedRecoveryEntries[0] ?? null
   const isTodayView = isTodayDateKey(targetDate)
   const showBodyFormHelperCopy =
@@ -209,6 +232,12 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
       ? true
       : window.matchMedia('(min-width: 421px)').matches
 
+  useEffect(() => {
+    if (advancedOpenToken > 0) {
+      setShowAdvancedTools(true)
+    }
+  }, [advancedOpenToken])
+
   function resetBodyForm() {
     setEditingBodyEntryId(null)
     setWeight('71.8')
@@ -233,6 +262,7 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
       return
     }
 
+    setShowAdvancedTools(true)
     setEditingBodyEntryId(entry.id)
     setWeight(String(entry.weight))
     setBodyFat(entry.bodyFat != null ? String(entry.bodyFat) : '')
@@ -248,6 +278,7 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
       return
     }
 
+    setShowAdvancedTools(true)
     setEditingRecoveryEntryId(entry.id)
     setWaterLiters(String(entry.waterLiters))
     setSteps(String(entry.steps))
@@ -340,7 +371,7 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
         <div className="panel-head">
           <div>
             <p className="section-kicker">身体</p>
-            <h2>今天身体状态，一眼看清</h2>
+            <h2>今天身体状态</h2>
           </div>
           <div className="pill-row">
             <span className="pill">{formatDateKeyLabel(targetDate)}</span>
@@ -349,27 +380,34 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
 
         <div className="meal-summary-grid">
           <article className="meal-summary-card">
-            <span>最新体重</span>
-            <strong>{latestBodyEntry ? `${latestBodyEntry.weight.toFixed(1)} kg` : '--'}</strong>
-            <small>{latestBodyEntry ? resolveDateKey(latestBodyEntry.dateKey, latestBodyEntry.loggedAt) : '还没有记录'}</small>
+            <span>体重</span>
+            <strong>{selectedBodyLatest ? `${selectedBodyLatest.weight.toFixed(1)} kg` : '--'}</strong>
+            <small>{selectedBodyLatest ? '今天已记录' : '今天未记录'}</small>
           </article>
           <article className="meal-summary-card">
-            <span>7天变化</span>
-            <strong>{weightTrend.delta.toFixed(1)} kg</strong>
-            <small>向 {weightTrend.direction === 'down' ? '下' : weightTrend.direction === 'up' ? '上' : '平'} 变化</small>
+            <span>恢复</span>
+            <strong>{selectedRecoveryLatest ? `${selectedRecoveryLatest.energy} / 5` : '--'}</strong>
+            <small>{selectedRecoveryLatest ? '今天已记录' : '今天未记录'}</small>
           </article>
           <article className="meal-summary-card">
-            <span>{isTodayView ? '今日喝水' : '当日喝水'}</span>
-            <strong>{selectedRecoveryLatest ? `${selectedRecoveryLatest.waterLiters} L` : '--'}</strong>
-            <small>{selectedRecoveryLatest ? `${selectedRecoveryLatest.steps} 步` : '还没有恢复记录'}</small>
-          </article>
-          <article className="meal-summary-card">
-            <span>{isTodayView ? '今日睡眠' : '当日睡眠'}</span>
+            <span>睡眠</span>
             <strong>{selectedRecoveryLatest ? `${selectedRecoveryLatest.sleepHours} h` : '--'}</strong>
-            <small>{selectedRecoveryLatest ? `${selectedRecoveryLatest.energy} / 5 精力` : '补录后会显示'}</small>
+            <small>{selectedRecoveryLatest ? '恢复记录里同步' : '还没有恢复记录'}</small>
+          </article>
+          <article className="meal-summary-card">
+            <span>步数</span>
+            <strong>{selectedRecoveryLatest ? selectedRecoveryLatest.steps : '--'}</strong>
+            <small>{selectedRecoveryLatest ? '恢复记录里同步' : '还没有恢复记录'}</small>
+          </article>
+          <article className="meal-summary-card">
+            <span>喝水</span>
+            <strong>{selectedRecoveryLatest ? `${selectedRecoveryLatest.waterLiters} L` : '--'}</strong>
+            <small>{selectedRecoveryLatest ? '恢复记录里同步' : '还没有恢复记录'}</small>
           </article>
         </div>
 
+        {showAdvancedTools ? (
+          <>
         <div className="split-panel-grid body-insight-grid body-insight-grid--compact">
           <section className="panel-subsection body-stage-panel body-stage-panel--compact">
             <div className="meal-inline-head">
@@ -610,8 +648,49 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
             </div>
           </form>
         </div>
+          </>
+        ) : null}
       </article>
 
+      <article className="feature-panel frontstage-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-kicker">最近</p>
+            <h3>最近身体记录</h3>
+          </div>
+          <button
+            className="secondary-button"
+            onClick={() => setShowAdvancedTools((current) => !current)}
+            type="button"
+          >
+            {showAdvancedTools ? '收起全部' : '查看全部身体记录'}
+          </button>
+        </div>
+        <div className="stack-list">
+          {recentBodyRecords.length > 0 ? (
+            recentBodyRecords.map((record) => (
+              <div className="list-item list-item--dense" key={record.id}>
+                <div>
+                  <div className="list-meta-row">
+                    <strong>{record.title}</strong>
+                    <span className="pill pill--muted">{record.kind}</span>
+                  </div>
+                  <small className="subtle-caption">{record.detail}</small>
+                </div>
+                <div className="numeric-meta">
+                  <strong>{formatShortDateKey(record.dateKey)}</strong>
+                  <span>{record.dateKey}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-note">还没有身体记录，先记一次体重或恢复。</div>
+          )}
+        </div>
+      </article>
+
+      {showAdvancedTools ? (
+        <>
       <article className="feature-panel">
         <div className="panel-head">
           <div>
@@ -822,6 +901,8 @@ export function BodyView({ advancedOpenToken: _advancedOpenToken = 0, targetDate
           )}
         </div>
       </article>
+        </>
+      ) : null}
 
       <ConfirmSheet
         confirmLabel="确认删除"

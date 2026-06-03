@@ -11,17 +11,35 @@ describe('WorkoutsView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
-  it('renders daily training, rhythm, and tucked-away history controls together', () => {
+  async function openWorkoutAdvanced(user: ReturnType<typeof userEvent.setup>) {
+    if (screen.queryByRole('heading', { level: 3, name: '本周训练安排' })) {
+      return
+    }
+
+    await user.click(screen.getByRole('button', { name: '查看全部训练记录' }))
+  }
+
+  it('defaults to today workout state and keeps advanced training tools tucked away', async () => {
+    const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
 
     render(<WorkoutsView targetDate={targetDate} />)
+
+    expect(screen.getByRole('heading', { level: 2, name: '今天练了什么，一眼看清' })).toBeInTheDocument()
+    expect(screen.getByText('累计时长')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '最近训练' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看全部训练记录' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 3, name: '本周训练安排' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('搜索训练历史')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+
+    await openWorkoutAdvanced(user)
 
     const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
     expect(within(historyPanel as HTMLElement).getByText('查看全部训练记录')).toBeInTheDocument()
     expect(screen.queryByLabelText('搜索训练历史')).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: '今天练了什么，一眼看清' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '本周还差 2 次训练' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '2 天有训练，先把节奏稳住' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '常练动作，点一下带入' })).toBeInTheDocument()
@@ -38,6 +56,7 @@ describe('WorkoutsView', () => {
     const targetDate = formatLocalDateKey(new Date())
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     const selectedDayPanel = screen.getByRole('heading', { level: 3, name: '共 74 分钟 · 约 420 千卡' }).closest('article')
     expect(selectedDayPanel).not.toBeNull()
@@ -99,6 +118,7 @@ describe('WorkoutsView', () => {
     const targetDate = shiftDateKey(formatLocalDateKey(new Date()), 1)
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     expect(screen.getByRole('heading', { level: 3, name: '共 0 分钟 · 约 0 千卡' })).toBeInTheDocument()
     expect(screen.getByText('这一天还没有训练记录，可以先补一次训练。')).toBeInTheDocument()
@@ -132,6 +152,7 @@ describe('WorkoutsView', () => {
     const targetDate = formatLocalDateKey(new Date())
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
@@ -164,6 +185,7 @@ describe('WorkoutsView', () => {
     })
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
     const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
     await user.click(within(historyPanel as HTMLElement).getByText('查看全部训练记录'))
@@ -191,6 +213,7 @@ describe('WorkoutsView', () => {
     expect(originalSession).toBeDefined()
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
     const historyPanel = screen.getByRole('heading', { level: 3, name: '最近训练记录' }).closest('article')
     expect(historyPanel).not.toBeNull()
     await user.click(within(historyPanel as HTMLElement).getByText('查看全部训练记录'))
@@ -224,6 +247,7 @@ describe('WorkoutsView', () => {
     const targetWeekday = createDateFromKey(targetDate).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     expect(screen.getByText('本周安排')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: '本周训练安排' })).toBeInTheDocument()
@@ -261,6 +285,7 @@ describe('WorkoutsView', () => {
     const targetDate = shiftDateKey(formatLocalDateKey(new Date()), -10)
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     await user.click(screen.getByRole('button', { name: '推训练65 min · 力量' }))
 
@@ -299,6 +324,7 @@ describe('WorkoutsView', () => {
     const initialTemplateCount = useFitnessStore.getState().workoutTemplates.length
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     await user.click(screen.getAllByRole('button', { name: '将 腿部日 存为模板' })[0] as HTMLButtonElement)
 
@@ -334,6 +360,7 @@ describe('WorkoutsView', () => {
     const targetDate = formatLocalDateKey(new Date())
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     await user.click(screen.getByRole('button', { name: '编辑模板 推训练' }))
 
@@ -367,6 +394,7 @@ describe('WorkoutsView', () => {
     const targetWeekday = createDateFromKey(targetDate).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
 
     render(<WorkoutsView targetDate={targetDate} />)
+    await openWorkoutAdvanced(user)
 
     await user.click(screen.getByRole('button', { name: '安排 推训练' }))
 
