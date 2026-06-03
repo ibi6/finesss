@@ -705,24 +705,70 @@ describe('FitnessApp', () => {
     expect(within(recoveryDialog).queryByDisplayValue('salad-check')).not.toBeInTheDocument()
   })
 
-  it('keeps the global quick bar floating on mobile tab switches', async () => {
+  it('opens the smart record sheet from the mobile record button', async () => {
     const user = userEvent.setup()
+    const targetDate = formatLocalDateKey(new Date())
+
+    act(() => {
+      const state = useFitnessStore.getState()
+      state.replaceSnapshot({
+        mealEntries: state.mealEntries.filter(
+          (entry) => !(entry.dateKey === targetDate && entry.mealType === 'breakfast'),
+        ),
+      })
+    })
 
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
 
-    const recordFab = screen.getByRole('button', { name: "打开记录菜单" })
-    expect(recordFab).toHaveClass('global-record-fab')
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
 
-    await user.click(recordFab)
+    const dialog = screen.getByRole('dialog', { name: '快速记录面板' })
+    expect(within(dialog).getByRole('tab', { name: '饮食' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(dialog).getByDisplayValue('早餐')).toBeInTheDocument()
+    expect(within(dialog).getByRole('tab', { name: '训练' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('tab', { name: '体重' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('tab', { name: '恢复' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: '选择记录类型' })).not.toBeInTheDocument()
+  })
 
-    const actionSheet = screen.getByRole('dialog', { name: "选择记录类型" })
-    expect(actionSheet).toHaveClass('record-action-sheet')
-    expect(within(actionSheet).getByRole('button', { name: "记录饮食" })).toBeInTheDocument()
-    expect(within(actionSheet).getByRole('button', { name: "记录训练" })).toBeInTheDocument()
-    expect(within(actionSheet).getByRole('button', { name: "记录体重" })).toBeInTheDocument()
-    expect(within(actionSheet).getByRole('button', { name: "记录恢复" })).toBeInTheDocument()
+  it('uses body as the smart record default after three meals are logged', async () => {
+    const user = userEvent.setup()
+    const targetDate = formatLocalDateKey(new Date())
+
+    act(() => {
+      const state = useFitnessStore.getState()
+      const todayMeals = state.mealEntries.filter(
+        (entry) => entry.dateKey === targetDate && entry.mealType !== 'dinner',
+      )
+      state.replaceSnapshot({
+        mealEntries: [
+          ...todayMeals,
+          {
+            id: 'test-dinner',
+            mealType: 'dinner',
+            foodName: '测试晚餐',
+            servingLabel: '1 份',
+            calories: 500,
+            protein: 35,
+            carbs: 45,
+            fat: 16,
+            loggedAt: `${targetDate}T18:00:00.000Z`,
+            dateKey: targetDate,
+            sourceFoodId: null,
+          },
+        ],
+        bodyEntries: [],
+      })
+    })
+
+    render(<FitnessApp />)
+
+    await user.click(screen.getByRole('button', { name: '打开智能记录' }))
+
+    const dialog = screen.getByRole('dialog', { name: '快速记录面板' })
+    expect(within(dialog).getByRole('tab', { name: '体重' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('opens all quick entry modes from the desktop global quick bar outside today', async () => {

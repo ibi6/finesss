@@ -9,7 +9,6 @@ import {
   Settings2,
   Sparkles,
   UtensilsCrossed,
-  X,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -21,6 +20,7 @@ import { InsightsView } from './routes/InsightsView'
 import { MealsView } from './routes/MealsView'
 import { TodayView } from './routes/TodayView'
 import { WorkoutsView } from './routes/WorkoutsView'
+import { buildTodayFocus } from './todayFocus.model'
 import { formatDateKeyLabel, formatLocalDateKey, formatShortDateKey, isTodayDateKey, shiftDateKey } from '../store/date'
 import { buildDailySummary } from '../store/selectors'
 import { useFitnessStore } from '../store/useFitnessStore'
@@ -145,7 +145,10 @@ export function FitnessApp() {
   const [targetDate, setTargetDate] = useState(() => formatLocalDateKey(new Date()))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quickEntryRequest, setQuickEntryRequest] = useState<QuickEntryRequest | null>(null)
-  const [recordMenuOpen, setRecordMenuOpen] = useState(false)
+  const [advancedWorkspaceRequest, setAdvancedWorkspaceRequest] = useState<{
+    workspace: 'meals' | 'workouts' | 'body' | 'insights'
+    token: number
+  } | null>(null)
   const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding())
   const [isDesktopLayout, setIsDesktopLayout] = useState(getIsDesktopLayout)
   const [mobileViewportTick, setMobileViewportTick] = useState(0)
@@ -155,6 +158,7 @@ export function FitnessApp() {
   const todayKey = formatLocalDateKey(new Date())
   const dateOptions = useMemo(() => getDateOptions(targetDate), [targetDate])
   const daily = buildDailySummary(snapshot, targetDate)
+  const todayFocus = buildTodayFocus(snapshot, targetDate)
   const caloriesLeft = Math.max(snapshot.profile.dailyCalories - daily.calories, 0)
   const proteinLeft = Math.max(snapshot.profile.dailyProtein - daily.protein, 0)
   const viewingToday = isTodayDateKey(targetDate)
@@ -243,9 +247,19 @@ export function FitnessApp() {
     setActiveTab(tabId)
   }
 
+  function getAdvancedToken(workspace: 'meals' | 'workouts' | 'body' | 'insights') {
+    return advancedWorkspaceRequest?.workspace === workspace ? advancedWorkspaceRequest.token : 0
+  }
+
   function handleQuickAction(request: QuickEntryRequest) {
-    setRecordMenuOpen(false)
     setQuickEntryRequest(request)
+  }
+
+  function openSmartRecord() {
+    handleQuickAction({
+      mode: todayFocus.mode,
+      mealType: todayFocus.mealType,
+    })
   }
 
   function completeOnboarding() {
@@ -276,10 +290,11 @@ export function FitnessApp() {
   }
 
   function openAdvancedWorkspace(tabId: 'meals' | 'workouts' | 'body' | 'insights') {
+    setAdvancedWorkspaceRequest({ workspace: tabId, token: Date.now() })
     jumpToTab(tabId)
   }
 
-  let screen = <InsightsView targetDate={targetDate} />
+  let screen = <InsightsView {...{ advancedOpenToken: getAdvancedToken('insights'), targetDate }} />
 
   if (activeTab === 'today') {
     screen = (
@@ -292,11 +307,11 @@ export function FitnessApp() {
       />
     )
   } else if (activeTab === 'meals') {
-    screen = <MealsView targetDate={targetDate} />
+    screen = <MealsView {...{ advancedOpenToken: getAdvancedToken('meals'), targetDate }} />
   } else if (activeTab === 'workouts') {
-    screen = <WorkoutsView targetDate={targetDate} />
+    screen = <WorkoutsView {...{ advancedOpenToken: getAdvancedToken('workouts'), targetDate }} />
   } else if (activeTab === 'body') {
-    screen = <BodyView targetDate={targetDate} />
+    screen = <BodyView {...{ advancedOpenToken: getAdvancedToken('body'), targetDate }} />
   }
 
   const navigation = (
@@ -363,61 +378,15 @@ export function FitnessApp() {
   )
 
   const mobileRecordMenu = !isDesktopLayout ? (
-    <>
-      <button
-        aria-label="打开记录菜单"
-        className="global-record-fab"
-        onClick={() => setRecordMenuOpen(true)}
-        type="button"
-      >
-        <Plus size={22} />
-        <span>记录</span>
-      </button>
-      {recordMenuOpen ? (
-        <div className="record-action-sheet-backdrop" onClick={() => setRecordMenuOpen(false)} role="presentation">
-          <section
-            aria-label="选择记录类型"
-            aria-modal="true"
-            className="record-action-sheet"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <div className="record-action-sheet-head">
-              <div>
-                <p className="section-kicker">快速记录</p>
-                <h2>现在要记什么？</h2>
-              </div>
-              <button
-                aria-label="关闭记录菜单"
-                className="icon-circle-button"
-                onClick={() => setRecordMenuOpen(false)}
-                type="button"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="record-action-grid">
-              {quickEntryActions.map((action) => {
-                const Icon = action.icon
-
-                return (
-                  <button
-                    aria-label={`记录${action.label.replace('记', '')}`}
-                    className="record-action-button"
-                    key={action.mode}
-                    onClick={() => handleQuickAction({ mode: action.mode })}
-                    type="button"
-                  >
-                    <Icon size={20} />
-                    <span>{action.label.replace('记', '')}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        </div>
-      ) : null}
-    </>
+    <button
+      aria-label="打开智能记录"
+      className="global-record-fab"
+      onClick={openSmartRecord}
+      type="button"
+    >
+      <Plus size={22} />
+      <span>记录</span>
+    </button>
   ) : null
 
   return (
