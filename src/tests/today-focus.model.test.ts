@@ -150,7 +150,7 @@ describe('buildTodayFocus', () => {
     const focus = buildTodayFocus(snapshot(), targetDate)
 
     expect(focus.summary).toMatch(/已吃 \d+ kcal/)
-    expect(focus.summary).toMatch(/训练/)
+    expect(focus.summary).toMatch(/(?:训练 \d+ 分钟|训练未记)$/)
     expect(focus.summary).not.toMatch(/[\r\n]/)
   })
 })
