@@ -12,12 +12,30 @@ describe('InsightsView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
-  it('renders progress, heatmap, sparkline, and recent rhythm charts for the selected date', () => {
+  async function openInsightsAdvanced(user: ReturnType<typeof userEvent.setup>) {
+    if (screen.queryByRole('list', { name: '28天打卡热力格' })) {
+      return
+    }
+
+    await user.click(screen.getByRole('button', { name: '查看全部趋势' }))
+  }
+
+  it('defaults to weekly summary and keeps detailed trend charts tucked away', async () => {
+    const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
 
     const { container } = render(<InsightsView targetDate={targetDate} />)
 
     expect(screen.getByRole('img', { name: '阶段进度 16%' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: '本周复盘' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: /把这一周整理成一段/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '全部趋势放这里' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看全部趋势' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: '28天打卡热力格' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: '7天体重趋势图' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: '最近7天热量与蛋白质节奏' })).not.toBeInTheDocument()
+
+    await openInsightsAdvanced(user)
 
     const heatmap = screen.getByRole('list', { name: '28天打卡热力格' })
     expect(within(heatmap).getAllByRole('listitem')).toHaveLength(28)
@@ -31,17 +49,20 @@ describe('InsightsView', () => {
     expect(container.querySelectorAll('.metric-bar-row')).toHaveLength(5)
   })
 
-  it('shows recovery score feedback alongside the recent summaries', () => {
+  it('shows recovery score feedback alongside the recent summaries', async () => {
+    const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
 
     render(<InsightsView targetDate={targetDate} />)
+    await openInsightsAdvanced(user)
 
     expect(screen.getByText('恢复均分')).toBeInTheDocument()
     expect(screen.getByText('90 分')).toBeInTheDocument()
     expect(screen.getByText('最近 83 分')).toBeInTheDocument()
   })
 
-  it('renders the weekly plan adherence panel with completion counts and signals', () => {
+  it('renders the weekly plan adherence panel with completion counts and signals', async () => {
+    const user = userEvent.setup()
     const targetDate = formatLocalDateKey(new Date())
     const dayMinus1 = shiftDateKey(targetDate, -1)
     const dayMinus2 = shiftDateKey(targetDate, -2)
@@ -141,6 +162,7 @@ describe('InsightsView', () => {
     })
 
     render(<InsightsView targetDate={targetDate} />)
+    await openInsightsAdvanced(user)
 
     const planPanel = screen.getByRole('heading', { level: 2, name: '这周按计划落下了 2 / 5 项' }).closest('article')
 

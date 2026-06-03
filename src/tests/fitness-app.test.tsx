@@ -43,6 +43,38 @@ function mockMatchMedia(matches: boolean) {
   }
 }
 
+async function openInsightsAdvanced(user: ReturnType<typeof userEvent.setup>) {
+  if (screen.queryByRole('list', { name: '28天打卡热力格' })) {
+    return
+  }
+
+  await user.click(screen.getByRole('button', { name: '查看全部趋势' }))
+}
+
+async function openWorkoutAdvanced(user: ReturnType<typeof userEvent.setup>) {
+  if (screen.queryByRole('heading', { level: 3, name: '本周训练安排' })) {
+    return
+  }
+
+  await user.click(screen.getByRole('button', { name: '查看全部训练记录' }))
+}
+
+async function openBodyAdvanced(user: ReturnType<typeof userEvent.setup>) {
+  if (screen.queryByRole('heading', { level: 3, name: '从起点到当前的身体变化' })) {
+    return
+  }
+
+  await user.click(screen.getByRole('button', { name: '查看全部身体记录' }))
+}
+
+async function openMealAdvanced(user: ReturnType<typeof userEvent.setup>) {
+  if (screen.queryByRole('heading', { level: 3, name: '拍一张，先给你候选和份量建议' })) {
+    return
+  }
+
+  await user.click(screen.getByRole('button', { name: '查看全部饮食记录' }))
+}
+
 describe('FitnessApp', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -71,7 +103,8 @@ describe('FitnessApp', () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: "今天练了什么，一眼看清" }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: new RegExp("加动作") })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: "最近训练" })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: "查看全部训练记录" })).toBeInTheDocument()
   })
 
   it('uses a compact mobile topbar without the standalone brand block', () => {
@@ -115,6 +148,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
@@ -143,6 +177,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
@@ -170,6 +205,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
@@ -195,6 +231,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
@@ -229,6 +266,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const weeklyPlanHeading = await screen.findByRole('heading', { level: 3, name: '本周训练安排' })
     const weeklyPlanPanel = weeklyPlanHeading.closest('.workout-weekly-plan-panel')
@@ -357,6 +395,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const rhythmHeading = await screen.findByRole('heading', { level: 3, name: "近 7 天热量和蛋白质节奏" })
     const rhythmPanel = rhythmHeading.closest('article')
@@ -375,6 +414,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const planHeading = await screen.findByRole('heading', { level: 2, name: "这周还没有固定计划可对照" })
     const planPanel = planHeading.closest('article')
@@ -393,6 +433,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const summaryHeading = await screen.findByRole('heading', { level: 2, name: "先看这一周稳不稳" })
     const summaryPanel = summaryHeading.closest('article')
@@ -453,6 +494,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const heatmapHeading = await screen.findByRole('heading', { level: 3, name: "颜色越深，这段时间越稳" })
     const heatmapPanel = heatmapHeading.closest('article')
@@ -471,6 +513,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const planHeading = await screen.findByRole('heading', { level: 2, name: "这周还没有固定计划可对照" })
     const planPanel = planHeading.closest('article')
@@ -486,6 +529,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "趋势" }))
+    await openInsightsAdvanced(user)
 
     const heatmapHeading = await screen.findByRole('heading', { level: 3, name: "颜色越深，这段时间越稳" })
     const heatmapPanel = heatmapHeading.closest('article')
@@ -547,6 +591,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "身体" }))
+    await openBodyAdvanced(user)
     await user.click(screen.getByRole('button', { name: new RegExp("标准日") }))
 
     expect(screen.getByLabelText("喝水")).toHaveValue(2.8)
@@ -561,6 +606,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "身体" }))
+    await openBodyAdvanced(user)
 
     const bodyHeading = await screen.findByRole('heading', { level: 3, name: "记录今天的体重、体脂和围度" })
     const bodyForm = bodyHeading.closest('form')
@@ -585,6 +631,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '身体' }))
+    await openBodyAdvanced(user)
 
     const recoveryHeading = await screen.findByRole('heading', { level: 3, name: '记录今天的喝水、睡眠和步数' })
     const recoveryForm = recoveryHeading.closest('form')
@@ -608,8 +655,9 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '身体' }))
+    await openBodyAdvanced(user)
 
-    const bodyPanel = screen.getByRole('heading', { level: 2, name: '今天身体状态，一眼看清' }).closest('article')
+    const bodyPanel = screen.getByRole('heading', { level: 2, name: '今天身体状态' }).closest('article')
 
     expect(bodyPanel).not.toBeNull()
     expect((bodyPanel as HTMLElement).querySelector('.body-insight-grid')).toHaveClass(
@@ -805,6 +853,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
+    await openWorkoutAdvanced(user)
 
     expect(screen.getByText("本周训练节奏")).toBeInTheDocument()
     expect(screen.getByText("本周还差 2 次训练")).toBeInTheDocument()
@@ -824,6 +873,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
+    await openWorkoutAdvanced(user)
 
     const rhythmHeading = await screen.findByRole('heading', { level: 3, name: "本周还差 2 次训练" })
     const rhythmPanel = rhythmHeading.closest('div')
@@ -846,6 +896,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const rhythmHeading = await screen.findByRole('heading', { level: 3, name: '本周还差 2 次训练' })
     const rhythmPanel = rhythmHeading.closest('.workout-rhythm-panel')
@@ -875,6 +926,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
+    await openWorkoutAdvanced(user)
 
     const plannerHeading = await screen.findByRole('heading', { level: 3, name: "本周训练安排" })
     const plannerPanel = plannerHeading.closest('div')
@@ -897,6 +949,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "训练" }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: "把这次训练完整记下来" })
     const workoutForm = formHeading.closest('form')
@@ -924,6 +977,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -954,6 +1008,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -982,6 +1037,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1012,6 +1068,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1034,6 +1091,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1055,6 +1113,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1076,6 +1135,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1097,6 +1157,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1122,6 +1183,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1146,6 +1208,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1170,6 +1233,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1194,6 +1258,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1212,6 +1277,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1243,6 +1309,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1270,6 +1337,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1301,6 +1369,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1323,6 +1392,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1345,6 +1415,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1395,6 +1466,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1423,6 +1495,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1452,6 +1525,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1488,6 +1562,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1519,6 +1594,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1546,6 +1622,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1574,6 +1651,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1598,6 +1676,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1622,6 +1701,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1647,6 +1727,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1667,6 +1748,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1691,6 +1773,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: '训练' }))
+    await openWorkoutAdvanced(user)
 
     const formHeading = await screen.findByRole('heading', { level: 3, name: '把这次训练完整记下来' })
     const workoutForm = formHeading.closest('form')
@@ -1709,6 +1792,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
+    await openMealAdvanced(user)
 
     const estimateHeading = await screen.findByRole('heading', { level: 3, name: "拍一张，先给你候选和份量建议" })
     const estimatePanel = estimateHeading.closest('article')
@@ -1740,6 +1824,7 @@ describe('FitnessApp', () => {
     render(<FitnessApp />)
 
     await user.click(screen.getByRole('tab', { name: "饮食" }))
+    await openMealAdvanced(user)
 
     const estimateHeading = await screen.findByRole('heading', { level: 3, name: "拍一张，先给你候选和份量建议" })
     const estimatePanel = estimateHeading.closest('article')
@@ -1861,6 +1946,8 @@ describe('FitnessApp', () => {
 
     expect(screen.getByText("离目标还剩 5.9 kg")).toBeInTheDocument()
     expect(screen.getByText("下一节点 71.5 kg")).toBeInTheDocument()
+
+    await openInsightsAdvanced(user)
 
     const heatmap = screen.getByRole('list', { name: "28天打卡热力格" })
     expect(within(heatmap).getAllByRole('listitem')).toHaveLength(28)

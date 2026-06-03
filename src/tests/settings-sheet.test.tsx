@@ -17,6 +17,29 @@ describe('SettingsSheet backup actions', () => {
     vi.restoreAllMocks()
   })
 
+  it('opens tucked-away advanced workspaces from data and advanced tools', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onOpenAdvancedWorkspace = vi.fn()
+
+    render(<SettingsSheet onClose={onClose} onOpenAdvancedWorkspace={onOpenAdvancedWorkspace} open />)
+
+    expect(screen.getByRole('region', { name: '数据和高级功能' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '食物和排餐' }))
+    expect(onOpenAdvancedWorkspace).toHaveBeenLastCalledWith('meals')
+    expect(onClose).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: '训练模板和计划' }))
+    expect(onOpenAdvancedWorkspace).toHaveBeenLastCalledWith('workouts')
+
+    await user.click(screen.getByRole('button', { name: '身体完整历史' }))
+    expect(onOpenAdvancedWorkspace).toHaveBeenLastCalledWith('body')
+
+    await user.click(screen.getByRole('button', { name: '全部趋势报表' }))
+    expect(onOpenAdvancedWorkspace).toHaveBeenLastCalledWith('insights')
+  })
+
   it('exports a versioned backup payload from the current snapshot', async () => {
     const user = userEvent.setup()
     const createObjectURL = vi.fn<(blob: Blob) => string>(() => 'blob:backup')

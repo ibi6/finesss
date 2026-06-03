@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { formatDateKeyLabel, formatShortDateKey, shiftDateKey } from '../../store/date'
@@ -93,9 +93,7 @@ interface InsightsViewProps {
   advancedOpenToken?: number
 }
 
-export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: InsightsViewProps) {
-  void _advancedOpenToken
-
+export function InsightsView({ advancedOpenToken = 0, targetDate }: InsightsViewProps) {
   const snapshot = useFitnessStore(
     useShallow((state) => ({
       profile: state.profile,
@@ -128,6 +126,7 @@ export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, target
       ? `最近 ${sevenDaySummary.latestRecoveryScore} 分`
       : '近 7 天还没有恢复记录'
   const [weeklyReportCopyStatus, setWeeklyReportCopyStatus] = useState('')
+  const [showAdvancedTrends, setShowAdvancedTrends] = useState(false)
 
   const timeline = getRecentDates(targetDate, 7).map((date) => {
     const daily = buildDailySummary(snapshot, date)
@@ -148,6 +147,12 @@ export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, target
       : goalProgress.direction === 'cut'
         ? `-${goalProgress.completedChange.toFixed(1)} kg`
         : '0.0 kg'
+
+  useEffect(() => {
+    if (advancedOpenToken > 0) {
+      setShowAdvancedTrends(true)
+    }
+  }, [advancedOpenToken])
 
   async function handleCopyWeeklyReport() {
     if (!navigator.clipboard?.writeText) {
@@ -315,6 +320,25 @@ export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, target
         </div>
       </article>
 
+      <article className="feature-panel frontstage-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-kicker">更多</p>
+            <h3>全部趋势放这里</h3>
+          </div>
+          <button
+            className="secondary-button"
+            onClick={() => setShowAdvancedTrends((current) => !current)}
+            type="button"
+          >
+            {showAdvancedTrends ? '收起全部趋势' : '查看全部趋势'}
+          </button>
+        </div>
+        <p className="empty-note">体重曲线、打卡热力格、计划执行和节奏拆解，需要复盘时再打开。</p>
+      </article>
+
+      {showAdvancedTrends ? (
+        <>
       <article className="feature-panel feature-panel--wide plan-adherence-panel">
         <div className="panel-head">
           <div>
@@ -596,6 +620,8 @@ export function InsightsView({ advancedOpenToken: _advancedOpenToken = 0, target
           ))}
         </div>
       </article>
+        </>
+      ) : null}
     </section>
   )
 }

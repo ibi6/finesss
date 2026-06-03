@@ -569,29 +569,29 @@ export function SettingsSheet({ open, onClose, onOpenAdvancedWorkspace }: Settin
         </form>
 
         <div className="settings-actions">
-          <section className="settings-advanced-panel" aria-label="高级功能与数据">
+          <section className="settings-advanced-panel" aria-label="数据和高级功能">
             <div className="panel-head">
               <div>
-                <p className="section-kicker">高级功能</p>
-                <h3>食物、计划和完整历史放这里</h3>
+                <p className="section-kicker">数据和高级功能</p>
+                <h3>不常用入口放这里</h3>
               </div>
             </div>
             <div className="settings-advanced-grid">
               <button className="secondary-button" onClick={() => openAdvancedWorkspace('meals')} type="button">
                 <Database size={16} />
-                <span>食物与排餐</span>
+                <span>食物和排餐</span>
               </button>
               <button className="secondary-button" onClick={() => openAdvancedWorkspace('workouts')} type="button">
                 <CalendarClock size={16} />
-                <span>训练计划</span>
+                <span>训练模板和计划</span>
               </button>
               <button className="secondary-button" onClick={() => openAdvancedWorkspace('body')} type="button">
                 <Gauge size={16} />
-                <span>完整历史</span>
+                <span>身体完整历史</span>
               </button>
               <button className="secondary-button" onClick={() => openAdvancedWorkspace('insights')} type="button">
                 <Target size={16} />
-                <span>周报总结</span>
+                <span>全部趋势报表</span>
               </button>
             </div>
           </section>
