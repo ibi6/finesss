@@ -56,9 +56,7 @@ interface MealsViewProps {
 
 const primaryMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner']
 
-export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDate }: MealsViewProps) {
-  void _advancedOpenToken
-
+export function MealsView({ advancedOpenToken = 0, targetDate }: MealsViewProps) {
   const targetWeekday = createDateFromKey(targetDate).getDay() as WeekdayIndex
   const {
     profile,
@@ -126,6 +124,7 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
   const [photoHistoryQuery, setPhotoHistoryQuery] = useState('')
   const [photoHistorySceneFilter, setPhotoHistorySceneFilter] = useState<'all' | 'meal' | 'drink' | 'protein' | 'snack'>('all')
   const [photoHistoryRangeDays, setPhotoHistoryRangeDays] = useState<PhotoHistoryRangeDays>(7)
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false)
   const [showFoodComposer, setShowFoodComposer] = useState(false)
   const [mealWorkspace, setMealWorkspace] = useState<MealWorkspace>('log')
   const [foodDraft, setFoodDraft] = useState(defaultFoodDraft)
@@ -176,6 +175,10 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
         .filter((entry) => resolveDateKey(entry.dateKey, entry.loggedAt) === targetDate)
         .sort((left, right) => right.loggedAt.localeCompare(left.loggedAt)),
     [mealEntries, targetDate],
+  )
+  const recentMealEntries = useMemo(
+    () => [...mealEntries].sort((left, right) => right.loggedAt.localeCompare(left.loggedAt)).slice(0, 3),
+    [mealEntries],
   )
   const selectedDayMealBuckets = useMemo(() => {
     const buckets = new Map<
@@ -613,6 +616,14 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
   }
 
   function jumpToLogWorkspace(target: PendingLogFocusTarget) {
+    setShowAdvancedTools(true)
+
+    if (!showAdvancedTools) {
+      pendingLogFocusTargetRef.current = target
+      setMealWorkspace('log')
+      return
+    }
+
     if (mealWorkspace === 'log') {
       focusLogWorkspaceSection(target)
       return
@@ -627,11 +638,18 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
       ...current,
       mealType,
     }))
+    setShowAdvancedTools(true)
     jumpToLogWorkspace('manual')
   }
 
   useEffect(() => {
-    if (mealWorkspace !== 'log' || pendingLogFocusTargetRef.current == null) {
+    if (advancedOpenToken > 0) {
+      setShowAdvancedTools(true)
+    }
+  }, [advancedOpenToken])
+
+  useEffect(() => {
+    if (!showAdvancedTools || mealWorkspace !== 'log' || pendingLogFocusTargetRef.current == null) {
       return
     }
 
@@ -662,7 +680,7 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
     }
 
     focusSection(recentPhotoHistoryRef)
-  }, [mealWorkspace])
+  }, [mealWorkspace, showAdvancedTools])
 
   function logPhotoEstimateRecord(record: PhotoEstimateRecord) {
     const stamp = createDateStampForDateKey(targetDate)
@@ -1072,70 +1090,108 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
           </div>
         </details>
 
-        <div className="meal-capture-panel">
-          <div className="meal-inline-head">
-            <div>
-              <p className="section-kicker">快速记录</p>
-              <h3>先选入口，再把这一餐快速记下来</h3>
+        {showAdvancedTools ? (
+          <div className="meal-capture-panel">
+            <div className="meal-inline-head">
+              <div>
+                <p className="section-kicker">快速记录</p>
+                <h3>先选入口，再把这一餐快速记下来</h3>
+              </div>
+              <span className="inline-note">当前默认餐次 {mealTypeLabels[form.mealType]}</span>
             </div>
-            <span className="inline-note">当前默认餐次 {mealTypeLabels[form.mealType]}</span>
-          </div>
 
-          <div className="quick-grid meal-capture-grid">
-            <button
-              aria-label="去拍照估算"
-              className="action-button meal-jump-button"
-              onClick={() => jumpToLogWorkspace('photo')}
-              type="button"
-            >
-              <Camera size={18} />
-              <span>拍照估算</span>
-              <small>不确定热量时先拍一下</small>
-            </button>
-            <button
-              aria-label="去手动录入"
-              className="action-button meal-jump-button"
-              onClick={() => jumpToLogWorkspace('manual')}
-              type="button"
-            >
-              <PencilLine size={18} />
-              <span>手动录入</span>
-              <small>直接补一餐</small>
-            </button>
-            <button
-              aria-label="去常吃带入"
-              className="action-button meal-jump-button"
-              onClick={() => jumpToLogWorkspace('favorites')}
-              type="button"
-            >
-              <Star size={18} />
-              <span>常吃带入</span>
-              <small>{favoriteFoods.length > 0 ? `${favoriteFoods.length} 个常用项` : '先保存几个常用'}</small>
-            </button>
-            <button
-              aria-label="去最近识别"
-              className="action-button meal-jump-button"
-              onClick={() => jumpToLogWorkspace('history')}
-              type="button"
-            >
-              <Clock3 size={18} />
-              <span>最近识别</span>
-              <small>
-                {photoEstimateHistory.totalInRange > 0
-                  ? `${photoEstimateHistory.totalInRange} 条可复用`
-                  : '拍过的会留在这里'}
-              </small>
-            </button>
-          </div>
+            <div className="quick-grid meal-capture-grid">
+              <button
+                aria-label="去拍照估算"
+                className="action-button meal-jump-button"
+                onClick={() => jumpToLogWorkspace('photo')}
+                type="button"
+              >
+                <Camera size={18} />
+                <span>拍照估算</span>
+                <small>不确定热量时先拍一下</small>
+              </button>
+              <button
+                aria-label="去手动录入"
+                className="action-button meal-jump-button"
+                onClick={() => jumpToLogWorkspace('manual')}
+                type="button"
+              >
+                <PencilLine size={18} />
+                <span>手动录入</span>
+                <small>直接补一餐</small>
+              </button>
+              <button
+                aria-label="去常吃带入"
+                className="action-button meal-jump-button"
+                onClick={() => jumpToLogWorkspace('favorites')}
+                type="button"
+              >
+                <Star size={18} />
+                <span>常吃带入</span>
+                <small>{favoriteFoods.length > 0 ? `${favoriteFoods.length} 个常用项` : '先保存几个常用'}</small>
+              </button>
+              <button
+                aria-label="去最近识别"
+                className="action-button meal-jump-button"
+                onClick={() => jumpToLogWorkspace('history')}
+                type="button"
+              >
+                <Clock3 size={18} />
+                <span>最近识别</span>
+                <small>
+                  {photoEstimateHistory.totalInRange > 0
+                    ? `${photoEstimateHistory.totalInRange} 条可复用`
+                    : '拍过的会留在这里'}
+                </small>
+              </button>
+            </div>
 
-          <MealWorkspaceTabs activeWorkspace={mealWorkspace} onSwitch={switchMealWorkspace} />
+            <MealWorkspaceTabs activeWorkspace={mealWorkspace} onSwitch={switchMealWorkspace} />
+          </div>
+        ) : null}
+      </article>
+
+      <article className="feature-panel frontstage-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-kicker">最近</p>
+            <h3>最近饮食</h3>
+          </div>
+          <button
+            className="secondary-button"
+            onClick={() => setShowAdvancedTools((current) => !current)}
+            type="button"
+          >
+            {showAdvancedTools ? '收起全部' : '查看全部饮食记录'}
+          </button>
+        </div>
+        <div className="stack-list">
+          {recentMealEntries.length > 0 ? (
+            recentMealEntries.map((entry) => (
+              <div className="list-item list-item--dense" key={entry.id}>
+                <div>
+                  <strong>{entry.foodName}</strong>
+                  <p>
+                    {mealTypeLabels[entry.mealType]} · {entry.servingLabel}
+                  </p>
+                </div>
+                <div className="numeric-meta">
+                  <strong>{entry.calories} kcal</strong>
+                  <span>{formatShortDateKey(resolveDateKey(entry.dateKey, entry.loggedAt))}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-note">还没有饮食记录，先记一餐。</div>
+          )}
         </div>
       </article>
 
-      {isLogWorkspace ? (
+      {showAdvancedTools && isLogWorkspace ? (
         <div
           aria-labelledby="meal-workspace-tab-log"
-          className="meal-workspace-panel"
+          className="meal-workspace-panel advanced-workspace-panel"
           id="meals-workspace-log"
           role="tabpanel"
         >
@@ -1748,10 +1804,10 @@ export function MealsView({ advancedOpenToken: _advancedOpenToken = 0, targetDat
         </div>
       ) : null}
 
-      {isPlanWorkspace ? (
+      {showAdvancedTools && isPlanWorkspace ? (
         <div
           aria-labelledby="meal-workspace-tab-plan"
-          className="meal-workspace-panel"
+          className="meal-workspace-panel advanced-workspace-panel"
           id="meals-workspace-plan"
           role="tabpanel"
         >

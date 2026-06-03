@@ -11,7 +11,16 @@ describe('MealsView', () => {
     useFitnessStore.getState().resetToSeed()
   })
 
+  async function openMealAdvanced(user: ReturnType<typeof userEvent.setup>) {
+    if (screen.queryByRole('tab', { name: '查看今天记录' })) {
+      return
+    }
+
+    await user.click(screen.getByRole('button', { name: '查看全部饮食记录' }))
+  }
+
   async function switchToPlanWorkspace(user: ReturnType<typeof userEvent.setup>) {
+    await openMealAdvanced(user)
     await user.click(screen.getByRole('tab', { name: '查看本周安排' }))
   }
 
@@ -21,10 +30,6 @@ describe('MealsView', () => {
 
     render(<MealsView targetDate={targetDate} />)
 
-    expect(screen.getByRole('tab', { name: '查看今天记录' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
     expect(
       screen.getByRole('heading', { level: 2, name: '今天吃了什么，一眼看清' }),
     ).toBeInTheDocument()
@@ -33,6 +38,10 @@ describe('MealsView', () => {
     expect(screen.getByLabelText('晚餐吃了什么')).toBeInTheDocument()
     expect(screen.getByLabelText('加餐记录折叠区')).toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: '切换到食物库工作区' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: '最近饮食' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看全部饮食记录' })).toBeInTheDocument()
+    expect(screen.queryByText('常用带入')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: '查看今天记录' })).not.toBeInTheDocument()
 
     await switchToPlanWorkspace(user)
 
@@ -54,6 +63,7 @@ describe('MealsView', () => {
 
     render(<MealsView targetDate={targetDate} />)
 
+    await openMealAdvanced(user)
     await user.click(screen.getByText('找不到食物？新增常用'))
     await user.click(screen.getByRole('button', { name: /新增常用食物/ }))
 
